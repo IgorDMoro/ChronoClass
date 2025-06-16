@@ -1,6 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3'; // Importe Link e useForm
+// ** Importe 'router' aqui para usar router.reload() **
+import { Head, Link, useForm, router } from '@inertiajs/vue3'; 
 
 const props = defineProps({
     professores: Array,
@@ -8,15 +9,19 @@ const props = defineProps({
     horariosDeAula: Array, // Recebido do Controller
 });
 
-// Para o flash message (se houver)
-const form = useForm({}); // Usamos useForm apenas para o Inertia.delete para flash messages
+// ** MENSAGEM DE VERSÃO ATUALIZADA - PARA CONFIRMAR SE O ARQUIVO CORRETO ESTÁ SENDO CARREGADO **
+console.log('Versão do Index.vue: RESOLUCAO_FINAL_V7'); 
+
+// LOG PARA VER A LISTA COMPLETA DE PROFESSORES QUE CHEGA NAS PROPS DA VIEW
+console.log('Professores recebidos nas props do Index.vue:', props.professores);
+
+const form = useForm({}); // Usado para operações form.delete, form.post, etc.
 
 // Função para formatar e exibir a disponibilidade
 const formatDisponibilidade = (horariosDisponiveisPivot) => {
     if (!horariosDisponiveisPivot || horariosDisponiveisPivot.length === 0) {
         return 'N/A';
     }
-
     const groupedByDay = horariosDisponiveisPivot.reduce((acc, current) => {
         if (!acc[current.dia_semana]) {
             acc[current.dia_semana] = [];
@@ -24,14 +29,11 @@ const formatDisponibilidade = (horariosDisponiveisPivot) => {
         acc[current.dia_semana].push(current.horario);
         return acc;
     }, {});
-
     let formattedString = '';
-    // Ordena os dias para exibição consistente
     const sortedDays = Object.keys(groupedByDay).sort((a, b) => {
         const order = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'];
         return order.indexOf(a) - order.indexOf(b);
     });
-
     for (const dia of sortedDays) {
         formattedString += `${formatDia(dia)}: ${groupedByDay[dia].join(', ')}\n`;
     }
@@ -42,18 +44,29 @@ const formatDia = (dia) => {
     return dia.charAt(0).toUpperCase() + dia.slice(1);
 };
 
-// Lógica de exclusão
+// ** Lógica de exclusão **
+// Esta função recebe APENAS O ID do professor.
 const deleteProfessor = (professorId) => {
+    // Este log é CRUCIAL: ele deve mostrar o ID correto do professor a ser excluído
+    console.log('ID do professor a ser excluído (na função deleteProfessor):', professorId);
+
+    if (!professorId) {
+        console.error('Erro: ID do professor não fornecido para exclusão. Cancelando requisição.');
+        alert('Não foi possível excluir o professor: ID inválido. Verifique o console.');
+        return; // Impede a requisição se o ID for inválido
+    }
+
     if (confirm('Tem certeza que deseja excluir este professor? Esta ação é irreversível.')) {
         form.delete(route('professores.destroy', professorId), {
             onSuccess: () => {
-                // O Inertia recarregará a página e o flash message será exibido automaticamente.
-                // Você pode adicionar um tratamento de UI extra aqui se quiser.
+                // Força o recarregamento da página após o sucesso da exclusão.
+                // Isso garante que a lista seja atualizada e a mensagem de erro desapareça.
+                router.reload({ preserveScroll: true }); 
             },
             onError: (errors) => {
-                // Tratar erros, talvez exibir uma mensagem Toast ou alerta
+                // Em caso de erro do Laravel (como validação, mas aqui é menos provável na exclusão)
                 console.error('Erro ao excluir professor:', errors);
-                alert('Erro ao excluir professor. Verifique o console.');
+                alert('Erro ao excluir professor. Verifique o console para mais detalhes.');
             }
         });
     }
@@ -103,7 +116,13 @@ const deleteProfessor = (professorId) => {
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <Link :href="route('professores.edit', professor.id)" class="text-indigo-600 hover:text-indigo-900 mr-4">Editar</Link>
-                                            <a href="#" class="text-red-600 hover:text-red-900" @click.prevent="deleteProfessor(professor.id)">Excluir</a>
+                                            <!-- ** MUDANÇA: Usando <button> no lugar de <a> e passando professor.id diretamente ** -->
+                                            <button
+                                                @click.prevent="deleteProfessor(professor.id)"
+                                                class="text-red-600 hover:text-red-900 focus:outline-none"
+                                            >
+                                                Excluir
+                                            </button>
                                         </td>
                                     </tr>
                                     <tr v-if="professores.length === 0">
