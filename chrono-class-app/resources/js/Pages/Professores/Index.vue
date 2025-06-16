@@ -1,23 +1,18 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-// ** Importe 'router' aqui para usar router.reload() **
 import { Head, Link, useForm, router } from '@inertiajs/vue3'; 
 
 const props = defineProps({
     professores: Array,
-    diasDaSemana: Array, // Recebido do Controller
-    horariosDeAula: Array, // Recebido do Controller
+    diasDaSemana: Array,
+    horariosDeAula: Array,
 });
 
-// ** MENSAGEM DE VERSÃO ATUALIZADA - PARA CONFIRMAR SE O ARQUIVO CORRETO ESTÁ SENDO CARREGADO **
-console.log('Versão do Index.vue: RESOLUCAO_FINAL_V7'); 
-
-// LOG PARA VER A LISTA COMPLETA DE PROFESSORES QUE CHEGA NAS PROPS DA VIEW
+console.log('Versão do Index.vue: RESOLUCAO_FINAL_V8_POST_DELETE'); 
 console.log('Professores recebidos nas props do Index.vue:', props.professores);
 
-const form = useForm({}); // Usado para operações form.delete, form.post, etc.
+const form = useForm({});
 
-// Função para formatar e exibir a disponibilidade
 const formatDisponibilidade = (horariosDisponiveisPivot) => {
     if (!horariosDisponiveisPivot || horariosDisponiveisPivot.length === 0) {
         return 'N/A';
@@ -44,28 +39,32 @@ const formatDia = (dia) => {
     return dia.charAt(0).toUpperCase() + dia.slice(1);
 };
 
-// ** Lógica de exclusão **
-// Esta função recebe APENAS O ID do professor.
+// Lógica de exclusão agora usa o método POST
 const deleteProfessor = (professorId) => {
-    // Este log é CRUCIAL: ele deve mostrar o ID correto do professor a ser excluído
     console.log('ID do professor a ser excluído (na função deleteProfessor):', professorId);
 
     if (!professorId) {
         console.error('Erro: ID do professor não fornecido para exclusão. Cancelando requisição.');
+        // Substitua alert por um modal ou mensagem na UI, pois alert não funciona em iframes.
+        // Exemplo: this.$page.props.flash.error = 'Não foi possível excluir o professor: ID inválido.';
         alert('Não foi possível excluir o professor: ID inválido. Verifique o console.');
-        return; // Impede a requisição se o ID for inválido
+        return;
     }
 
+    const deleteUrl = route('professores.delete-post', professorId); // Nova rota POST
+    console.log('URL de exclusão gerada por route() para POST:', deleteUrl);
+
     if (confirm('Tem certeza que deseja excluir este professor? Esta ação é irreversível.')) {
-        form.delete(route('professores.destroy', professorId), {
+        // Altera de form.delete para form.post
+        // O segundo argumento é um objeto de dados, que pode ser vazio aqui, pois o ID já está na URL
+        form.post(deleteUrl, {}, { 
             onSuccess: () => {
-                // Força o recarregamento da página após o sucesso da exclusão.
-                // Isso garante que a lista seja atualizada e a mensagem de erro desapareça.
+                console.log('Professor excluído com sucesso via POST!');
                 router.reload({ preserveScroll: true }); 
             },
             onError: (errors) => {
-                // Em caso de erro do Laravel (como validação, mas aqui é menos provável na exclusão)
-                console.error('Erro ao excluir professor:', errors);
+                console.error('Erro ao excluir professor via POST:', errors);
+                // Substitua alert por um modal ou mensagem na UI
                 alert('Erro ao excluir professor. Verifique o console para mais detalhes.');
             }
         });
@@ -116,7 +115,6 @@ const deleteProfessor = (professorId) => {
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <Link :href="route('professores.edit', professor.id)" class="text-indigo-600 hover:text-indigo-900 mr-4">Editar</Link>
-                                            <!-- ** MUDANÇA: Usando <button> no lugar de <a> e passando professor.id diretamente ** -->
                                             <button
                                                 @click.prevent="deleteProfessor(professor.id)"
                                                 class="text-red-600 hover:text-red-900 focus:outline-none"
@@ -137,3 +135,4 @@ const deleteProfessor = (professorId) => {
         </div>
     </AuthenticatedLayout>
 </template>
+
