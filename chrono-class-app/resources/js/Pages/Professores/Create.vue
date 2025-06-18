@@ -17,10 +17,6 @@ const diasDaSemana = [
 ];
 
 const horariosDeAula = [
-    '08:00-09:40',
-    '10:00-11:40',
-    '14:00-15:40',
-    '16:00-17:40',
     '19:00-20:30',
     '20:45-22:15'
 ];
@@ -29,8 +25,6 @@ const form = useForm({
     nome: '',
     email: '',
     telefone: '',
-    // Agora armazenamos as combinações dia-horário como um array de strings
-    // Ex: ['segunda-08:00-09:40', 'terca-19:00-20:30']
     horarios_disponiveis_selecionados: [],
 });
 

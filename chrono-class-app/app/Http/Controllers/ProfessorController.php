@@ -13,11 +13,17 @@ class ProfessorController extends Controller
 {
     // Definir as opções de dias e horários em um array para reuso
     private $diasDaSemana = [
-        'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado',
+        'segunda',
+        'terça',
+        'quarta',
+        'quinta',
+        'sexta',
+        'sábado',
     ];
 
     private $horariosDeAula = [
-        '08:00-09:40', '10:00-11:40', '14:00-15:40', '16:00-17:40', '19:00-20:30', '20:45-22:15'
+        '19:00-20:30',
+        '20:45-22:15'
     ];
 
     /**
@@ -77,7 +83,7 @@ class ProfessorController extends Controller
         });
 
         return Redirect::route('professores.index')
-                       ->with('message', 'Professor cadastrado com sucesso!');
+            ->with('message', 'Professor cadastrado com sucesso!');
     }
 
     /**
@@ -129,7 +135,7 @@ class ProfessorController extends Controller
         });
 
         return Redirect::route('professores.index')
-                       ->with('message', 'Professor atualizado com sucesso!');
+            ->with('message', 'Professor atualizado com sucesso!');
     }
 
     /**
@@ -142,6 +148,6 @@ class ProfessorController extends Controller
         });
 
         return Redirect::route('professores.index')
-                       ->with('message', 'Professor excluído com sucesso!');
+            ->with('message', 'Professor excluído com sucesso!');
     }
 }
