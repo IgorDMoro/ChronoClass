@@ -5,6 +5,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\ProfessorController;
+use App\Http\Controllers\SalaController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -53,6 +54,12 @@ Route::middleware('auth')->group(function () {
     // Esta rota permite que você envie uma requisição POST para atualizar um professor.
     // No Vue, você usará form.post() para esta URL e incluirá um campo _method com o valor 'put'.
     Route::post('/professores/{professor}/update-post', [ProfessorController::class, 'update'])->name('professores.update-post');
+
+
+
+    Route::resource('salas', SalaController::class);
+    Route::post('/salas/{sala}/delete-post', [SalaController::class, 'destroy'])->name('salas.delete-post');
+
 });
 
 require __DIR__ . '/auth.php';
