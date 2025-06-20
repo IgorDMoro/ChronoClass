@@ -4,25 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany; // Importar BelongsToMany
 
 class GradeHorario extends Model
 {
     use HasFactory;
 
-    /**
-     * The table associated with the model.
-     *
-     * @var string
-     */
-    protected $table = 'grade_horarios'; // Garante que o nome da tabela está correto
+    protected $table = 'grade_horarios';
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
-        'turma_id',
         'materia_id',
         'professor_id',
         'sala_id',
@@ -31,11 +21,11 @@ class GradeHorario extends Model
     ];
 
     /**
-     * Get the turma that owns the grade horario.
+     * Get the turmas that belong to the grade horario.
      */
-    public function turma()
+    public function turmas(): BelongsToMany // Novo método para o relacionamento muitos-para-muitos
     {
-        return $this->belongsTo(Turma::class);
+        return $this->belongsToMany(Turma::class, 'grade_horario_turma', 'grade_horario_id', 'turma_id');
     }
 
     /**

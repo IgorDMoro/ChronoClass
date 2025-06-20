@@ -11,13 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-    Schema::create('turmas', function (Blueprint $table) {
-        $table->id();
-        $table->string('nome');
-        $table->string('curso');
-        $table->integer('semestre');
-        $table->timestamps(); // criado_em e atualizado_em
-    });
+        Schema::create('turmas', function (Blueprint $table) {
+            $table->id();
+            $table->string('nome');
+            $table->string('curso');
+            $table->integer('semestre');
+            $table->integer('num_alunos')->unsigned()->nullable(); // ADICIONE ESTA LINHA
+            $table->timestamps(); // criado_em e atualizado_em
+        });
     }
 
     /**
