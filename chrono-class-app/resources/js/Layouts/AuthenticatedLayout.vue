@@ -39,6 +39,24 @@ const showingNavigationDropdown = ref(false);
                                 >
                                     Dashboard
                                 </NavLink>
+                                <NavLink
+                                    :href="route('salas.index')"
+                                    :active="route().current('salas.index')"
+                                >
+                                    Salas
+                                </NavLink>
+                                <NavLink
+                                    :href="route('professores.index')"
+                                    :active="route().current('professores.index')"
+                                >
+                                    Professores
+                                </NavLink>
+                                <NavLink
+                                    :href="route('grade_horarios.index')"
+                                    :active="route().current('grade_horarios.index')"
+                                >
+                                    Grade Horarios
+                                </NavLink>
                             </div>
                         </div>
 
