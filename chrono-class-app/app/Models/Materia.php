@@ -10,15 +10,27 @@ class Materia extends Model
     use HasFactory;
 
     /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table = 'materias'; // Geralmente o Laravel infere, mas é bom ser explícito.
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
      */
     protected $fillable = [
-        'codigo',
-        'nome',
-        'curso',
-        'semestre',
+        'codigo',       
+        'nome',         
+        'carga_horaria',
+        'modalidade',   
+        'comp_tipo',    
+        'ensw_tipo',    
+        
+        
+        
     ];
 
     /**
