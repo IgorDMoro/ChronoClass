@@ -52,11 +52,18 @@ const showingNavigationDropdown = ref(false);
                                     Professores
                                 </NavLink>
                                 <NavLink
+                                    :href="route('materias.index')"
+                                    :active="route().current('gmaterias.index')"
+                                >
+                                    Materias
+                                </NavLink>
+                                <NavLink
                                     :href="route('grade_horarios.index')"
                                     :active="route().current('grade_horarios.index')"
                                 >
                                     Grade Horarios
                                 </NavLink>
+                                
                             </div>
                         </div>
 
