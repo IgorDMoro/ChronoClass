@@ -15,10 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('codigo')->unique(); // 'Cód' - Único para cada matéria
             $table->string('nome');             // 'Disciplina de Origem: Unidade Curricular'
-            $table->integer('carga_horaria');   // 'CH'
-            $table->string('modalidade');       // 'Mod' (Presencial, UCD)
-            $table->string('comp_tipo');        // 'Comp' (Core, Flex)
-            $table->string('ensw_tipo');        // 'Ensw' (Core, Flex)
+            $table->integer('carga_horaria')-> nullable(); // 'CH'
+            $table->string('modalidade')-> nullable();       // 'Mod' (Presencial, UCD)
+            $table->string('comp_tipo')-> nullable();        // 'Comp' (Core, Flex)
+            $table->string('ensw_tipo')-> nullable();        // 'Ensw' (Core, Flex)
             $table->timestamps();
         });
     }
