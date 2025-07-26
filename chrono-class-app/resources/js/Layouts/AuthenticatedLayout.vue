@@ -63,6 +63,12 @@ const showingNavigationDropdown = ref(false);
                                 >
                                     Grade Horarios
                                 </NavLink>
+                                <NavLink
+                                    :href="route('turmas.index')"
+                                    :active="route().current('turmas.index')"
+                                >
+                                    Turmas
+                                </NavLink>
                                 
                             </div>
                         </div>

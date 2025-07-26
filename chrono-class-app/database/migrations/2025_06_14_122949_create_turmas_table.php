@@ -14,10 +14,9 @@ return new class extends Migration
         Schema::create('turmas', function (Blueprint $table) {
             $table->id();
             $table->string('nome');
-            $table->string('curso');
-            $table->integer('semestre');
-            $table->integer('num_alunos')->unsigned()->nullable(); // ADICIONE ESTA LINHA
-            $table->timestamps(); // criado_em e atualizado_em
+            $table->string('periodo');      // Corrigido de 'curso'
+            $table->integer('ano_letivo');  // Corrigido de 'semestre'
+            $table->timestamps();
         });
     }
 
