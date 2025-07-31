@@ -2,3 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+.header-logo {
+    height: 40px; /* Ou o tamanho que você preferir, ex: 32px, 48px */
+    width: auto; /* Mantém a proporção */
+}
+
+.block {
+        
+    margin: 5px;
+    height: 60px; /* Ou o tamanho que você preferir, ex: 32px, 48px */
+    width: auto; /* Mantém a proporção */
+}
+
+.min-h-screen {
+    min-height: 100vh; /* Garante que o conteúdo ocupe pelo menos a altura total da tela */
+    background-color: #4d5061;
+}
