@@ -11,13 +11,16 @@ use App\Models\ProfessorHorarioDisponivel;
 
 class ProfessorController extends Controller
 {
-    // Definir as opções de dias e horários em um array para reuso
+    // Definir as opções de dias e horários para reuso
     private $diasDaSemana = [
         'segunda',
         'terça',
         'quarta',
         'quinta',
         'sexta',
+    ];
+
+    private $finaisDeSemana = [
         'sábado',
     ];
 
@@ -26,17 +29,22 @@ class ProfessorController extends Controller
         '20:45-22:15'
     ];
 
+    private $horariosDeAulaFinaisDeSemana = [
+        '08:00-09:30',
+        '10:00-12:00'
+    ];
+
+
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
+        // A lógica do Index não precisa de alteração, pois apenas exibe os dados salvos.
         $professores = Professor::with('horariosDisponiveisPivot')->get();
 
         return Inertia::render('Professores/Index', [
             'professores' => $professores,
-            'diasDaSemana' => $this->diasDaSemana,
-            'horariosDeAula' => $this->horariosDeAula,
         ]);
     }
 
@@ -45,9 +53,12 @@ class ProfessorController extends Controller
      */
     public function create()
     {
+        // Envia as 4 listas de dados para a view de criação
         return Inertia::render('Professores/Create', [
             'diasDaSemana' => $this->diasDaSemana,
+            'finaisDeSemana' => $this->finaisDeSemana,
             'horariosDeAula' => $this->horariosDeAula,
+            'horariosDeAulaFinaisDeSemana' => $this->horariosDeAulaFinaisDeSemana,
         ]);
     }
 
@@ -56,6 +67,8 @@ class ProfessorController extends Controller
      */
     public function store(Request $request)
     {
+        // A validação e a lógica de armazenamento não precisam ser alteradas,
+        // pois o formato 'dia-horario' é consistente.
         $validatedData = $request->validate([
             'nome' => 'required|string|max:255',
             'email' => 'nullable|email|max:255|unique:professores,email',
@@ -91,13 +104,15 @@ class ProfessorController extends Controller
      */
     public function edit(Professor $professor)
     {
-        // Carrega o professor com seus horários de disponibilidade para o formulário de edição
         $professor->load('horariosDisponiveisPivot');
 
+        // Envia as 4 listas de dados para a view de edição
         return Inertia::render('Professores/Edit', [
             'professor' => $professor,
             'diasDaSemana' => $this->diasDaSemana,
+            'finaisDeSemana' => $this->finaisDeSemana,
             'horariosDeAula' => $this->horariosDeAula,
+            'horariosDeAulaFinaisDeSemana' => $this->horariosDeAulaFinaisDeSemana,
         ]);
     }
 
@@ -106,6 +121,7 @@ class ProfessorController extends Controller
      */
     public function update(Request $request, Professor $professor)
     {
+        // A validação e a lógica de atualização também não precisam de alteração.
         $validatedData = $request->validate([
             'nome' => 'required|string|max:255',
             'email' => 'nullable|email|max:255|unique:professores,email,' . $professor->id,
