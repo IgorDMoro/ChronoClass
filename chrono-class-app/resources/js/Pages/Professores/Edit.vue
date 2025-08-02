@@ -35,13 +35,18 @@ const formatDia = (dia) => {
 };
 
 const submit = () => {
-    const updateUrl = route('professores.update', props.professor.id);
-    form.put(updateUrl, { // Usando PUT para update, conforme padrão RESTful
+    // 1. Usar a rota POST nomeada 'professores.update-post'
+    const updateUrl = route('professores.update-post', props.professor.id);
+
+    // 2. Mudar o método para form.post()
+    form.post(updateUrl, {
         onSuccess: () => {
+            // O redirecionamento no controller já deve cuidar disso,
+            // mas podemos manter para garantir.
             router.visit(route('professores.index'));
         },
         onError: (errors) => {
-            console.error('Erro ao atualizar professor:', errors);
+            console.error('Erro ao atualizar professor via POST:', errors);
         }
     });
 };
