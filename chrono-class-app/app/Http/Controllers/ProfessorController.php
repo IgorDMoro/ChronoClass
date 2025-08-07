@@ -67,8 +67,7 @@ class ProfessorController extends Controller
      */
     public function store(Request $request)
     {
-        // A validação e a lógica de armazenamento não precisam ser alteradas,
-        // pois o formato 'dia-horario' é consistente.
+
         $validatedData = $request->validate([
             'nome' => 'required|string|max:255',
             'email' => 'nullable|email|max:255|unique:professores,email',

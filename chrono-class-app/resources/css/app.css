@@ -16,5 +16,4 @@
 
 .min-h-screen {
     min-height: 100vh; /* Garante que o conteúdo ocupe pelo menos a altura total da tela */
-    background-color: #4d5061;
 }
