@@ -14,9 +14,7 @@ const props = defineProps({
 
 const classes = computed(() =>
     props.active
-        // Classes para o LINK ATIVO: Borda laranja e texto branco/negrito
         ? 'inline-flex items-center px-1 pt-1 border-b-2 border-orange-400 text-white font-semibold text-sm leading-5 focus:outline-none transition duration-150 ease-in-out'
-        // Classes para os links INATIVOS: Borda transparente e texto cinza
         : 'inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-600 focus:outline-none focus:text-gray-200 focus:border-gray-600 text-sm font-medium leading-5 transition duration-150 ease-in-out'
 );
 </script>

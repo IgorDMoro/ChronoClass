@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('professores', function (Blueprint $table) {
             $table->id(); // id: bigint, PK, auto-increment
+            $table->integer('matricula')->unique();
             $table->string('nome'); // nome: string
             $table->string('email')->nullable(); // email: string, opcional
             $table->string('telefone')->nullable(); // telefone: string, opcional

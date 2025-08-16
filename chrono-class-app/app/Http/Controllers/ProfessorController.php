@@ -69,6 +69,7 @@ class ProfessorController extends Controller
     {
 
         $validatedData = $request->validate([
+            'matricula' => 'required|integer|unique:professores,matricula',
             'nome' => 'required|string|max:255',
             'email' => 'nullable|email|max:255|unique:professores,email',
             'telefone' => 'nullable|string|max:20',
@@ -78,6 +79,7 @@ class ProfessorController extends Controller
 
         DB::transaction(function () use ($validatedData) {
             $professor = Professor::create([
+                'matricula' => $validatedData['matricula'],
                 'nome' => $validatedData['nome'],
                 'email' => $validatedData['email'],
                 'telefone' => $validatedData['telefone'],
@@ -100,7 +102,7 @@ class ProfessorController extends Controller
 
     /**
      * Show the form for editing the specified resource.
-     */
+     */ 
     public function edit(Professor $professor)
     {
         $professor->load('horariosDisponiveisPivot');
@@ -122,6 +124,7 @@ class ProfessorController extends Controller
     {
         // A validação e a lógica de atualização também não precisam de alteração.
         $validatedData = $request->validate([
+            'matricula' => 'required|integer|unique:professores,matricula,' . $professor->id, 
             'nome' => 'required|string|max:255',
             'email' => 'nullable|email|max:255|unique:professores,email,' . $professor->id,
             'telefone' => 'nullable|string|max:20',
@@ -131,6 +134,7 @@ class ProfessorController extends Controller
 
         DB::transaction(function () use ($validatedData, $professor) {
             $professor->update([
+                'matricula' => $validatedData['matricula'],
                 'nome' => $validatedData['nome'],
                 'email' => $validatedData['email'],
                 'telefone' => $validatedData['telefone'],

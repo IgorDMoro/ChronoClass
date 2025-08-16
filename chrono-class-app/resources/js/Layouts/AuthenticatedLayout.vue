@@ -12,16 +12,15 @@ const showingNavigationDropdown = ref(false);
 
 <template>
     <div>
-        <!-- AQUI ESTÁ A MUDANÇA: Gradiente sutil com zinc e black para um efeito de profundidade. -->
-        <div class="min-h-screen bg-black bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-800 to-black">
-            <nav class="bg-neutral-900/50 backdrop-blur-sm border-b border-orange-500/30">
+        <div class="min-h-screen bg-[radial-gradient(ellipse_at_top_center,_var(--tw-gradient-stops))] from-zinc-800 via-neutral-800 to-black">
+            <nav class="bg-zinc-800 border-b border-orange-500/30">
                 <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div class="flex h-16 justify-between">
                         <div class="flex">
                             <div class="flex shrink-0 items-center">
                                 <Link :href="route('dashboard')">
                                     <img
-                                        src="../../../public/imgs/UniFil_Logo_Verical-01.png"
+                                        src="../../../public/imgs/UniFil_Logo Isolado Horizontal-01.png"
                                         alt="UniFil Logo"
                                         class="header-logo"
                                     />
@@ -81,7 +80,7 @@ const showingNavigationDropdown = ref(false);
                 <slot />
             </main>
 
-            <a href="https://unifil.br/" target="_blank" rel="noopener noreferrer" class="fixed bottom-4 right-4 z-50 opacity-40 h-40 w-auto flex items-end justify-end"> 
+            <a href="https://unifil.br/" target="_blank" rel="noopener noreferrer" class="bg-neutral-100 backdrop-blur-sm fixed bottom-4 right-4 z-50 opacity-40 flex items-end justify-end justify-content-end rounded-xl hover:opacity-100 transition-opacity duration-300"> 
                 <img src="../../../public/imgs/UniFil_Logo_Verical-01.png" alt="UniFil Logo" class="block h-full w-auto"/>
             </a>
         </div>

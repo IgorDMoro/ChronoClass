@@ -17,6 +17,7 @@ class Professor extends Model
 
     protected $table = 'professores';
     protected $fillable = [
+        'matricula',
         'nome',
         'email',
         'telefone',

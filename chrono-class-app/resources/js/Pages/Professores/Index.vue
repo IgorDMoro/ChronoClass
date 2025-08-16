@@ -19,18 +19,17 @@ const closeModal = () => {
 
 const executeDelete = () => {
     if (!professorToDelete.value) return;
+    
     const deleteUrl = route('professores.delete-post', professorToDelete.value.id);
     
     form.post(deleteUrl, {
         preserveScroll: true,
         onSuccess: () => {
             closeModal();
-            // Aqui você pode adicionar uma notificação de sucesso se desejar
         },
         onError: (errors) => {
             console.error('Erro ao excluir professor via POST:', errors);
             closeModal();
-            // Aqui você pode adicionar uma notificação de erro
         }
     });
 };
@@ -75,11 +74,11 @@ const formatDisponibilidade = (horariosDisponiveisPivot) => {
     <AuthenticatedLayout>
         <div class="py-12">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <div class="bg-neutral-900 overflow-hidden shadow-2xl shadow-black/25 sm:rounded-lg ring-1 ring-inset ring-orange-500/20">
+                <div class="bg-zinc-800 overflow-hidden shadow-2xl shadow-black/25 sm:rounded-lg ring-1 ring-inset ring-orange-500/20">
                     <div class="p-6 sm:p-8">
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
                             <h3 class="text-2xl font-bold text-gray-100 mb-4 sm:mb-0">Lista de Professores</h3>
-                            <Link :href="route('professores.create')" class="ms-4 inline-flex items-center px-4 py-2 bg-orange-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-orange-700 focus:bg-orange-700 active:bg-orange-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-neutral-900 transition ease-in-out duration-150">
+                            <Link :href="route('professores.create')" class="ms-4 inline-flex items-center px-4 py-2 bg-neutral-700/30 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-orange-700 focus:bg-orange-700 active:bg-orange-900 focus:outline-none ring-1 ring-orange-500 ring-offset-0 ring-offset-neutral-900 transition ease-in-out duration-150 ">
                                 Cadastrar Novo Professor
                             </Link>
                         </div>
@@ -100,16 +99,17 @@ const formatDisponibilidade = (horariosDisponiveisPivot) => {
                                     <tr v-for="professor in professores" :key="professor.id" class="border-b border-neutral-800 hover:bg-white/5 transition-colors duration-150">
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <div class="text-sm font-semibold text-gray-200">{{ professor.nome }}</div>
-                                            <div class="text-xs text-gray-300">{{ professor.email }}</div>
+                                            <div class="text-xs text-gray-400">Matrícula: {{ professor.matricula }}</div>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{{ professor.telefone }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                                            <div>{{ professor.telefone }}</div>
+                                            <div>{{ professor.email }}</div>
+                                        </td>
                                         <td class="px-6 py-4 whitespace-pre-line text-sm text-gray-300">
                                             {{ formatDisponibilidade(professor.horarios_disponiveis_pivot) }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <!-- AÇÕES COM ÍCONES E TOOLTIPS -->
                                             <div class="flex items-center justify-end gap-x-6">
-                                                <!-- Tooltip para Editar -->
                                                 <div class="relative group">
                                                     <Link :href="route('professores.edit', professor.id)" class="text-gray-400 hover:text-orange-400 transition-colors duration-150">
                                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
@@ -122,7 +122,6 @@ const formatDisponibilidade = (horariosDisponiveisPivot) => {
                                                     </div>
                                                 </div>
                                                 
-                                                <!-- Tooltip para Excluir -->
                                                 <div class="relative group">
                                                     <button @click.prevent="openConfirmModal(professor)" class="text-gray-500 hover:text-red-500 transition-colors duration-150 focus:outline-none">
                                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
@@ -149,7 +148,6 @@ const formatDisponibilidade = (horariosDisponiveisPivot) => {
             </div>
         </div>
 
-        <!-- MODAL DE CONFIRMAÇÃO DE EXCLUSÃO -->
         <div v-if="showConfirmDeleteModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div class="bg-neutral-800 max-w-lg w-full rounded-lg shadow-2xl ring-1 ring-white/10 p-6 sm:p-8">
                 <h3 class="text-lg font-semibold text-white">
