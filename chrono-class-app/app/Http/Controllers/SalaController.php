@@ -79,4 +79,19 @@ class SalaController extends Controller
 
         return redirect()->route('salas.index')->with('success', 'Sala excluída com sucesso!');
     }
+    
+    public function updateWithPost(Request $request, Sala $sala)
+{
+    // Reutiliza a mesma lógica do método update original
+    return $this->update($request, $sala);
+}
+
+/**
+ * Remove the specified resource from storage using a POST request.
+ */
+public function destroyWithPost(Sala $sala)
+{
+    // Reutiliza a mesma lógica do método destroy original
+    return $this->destroy($sala);
+}
 }

@@ -15,13 +15,11 @@ class MateriaController extends Controller
      * Display a listing of the resource.
      */
     public function index()
-    {
-        $materias = Materia::all();
-        // Passa os dados para a view Vue (Inertia Page)
-        return Inertia::render('Materias/Index', [
-            'materias' => $materias,
-        ]);
-    }
+{
+    return Inertia::render('Materias/Index', [
+        'materias' => Materia::paginate(10) // A mudança principal é aqui!
+    ]);
+}
 
     /**
      * Show the form for creating a new resource.
@@ -101,6 +99,18 @@ class MateriaController extends Controller
         return redirect()->route('materias.index')
                          ->with('success', 'Matéria excluída com sucesso!');
     }
+
+    public function updateWithPost(Request $request, Materia $materia)
+{
+    // Reutiliza a mesma lógica do método update original
+    return $this->update($request, $materia);
+}
+
+public function destroyWithPost(Materia $materia)
+{
+    // Reutiliza a mesma lógica do método destroy original
+    return $this->destroy($materia);
+}
 
     /**
      * Handle the import of materias from a file.

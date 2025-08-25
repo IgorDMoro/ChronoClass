@@ -169,4 +169,17 @@ class ProfessorController extends Controller
         return Redirect::route('professores.index')
             ->with('message', 'Professor excluído com sucesso!');
     }
+
+    public function updateWithPost(Request $request, Professor $professor)
+    {
+        return $this->update($request, $professor);
+    }
+
+    /**
+     * Remove the specified resource from storage using a POST request.
+     */
+    public function destroyWithPost(Professor $professor)
+    {
+        return $this->destroy($professor);
+    }
 }

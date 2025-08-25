@@ -53,9 +53,28 @@ class TurmaController extends Controller
         return redirect()->route('turmas.index');
     }
 
-    public function destroy(Turma $turma)
-    {
-        $turma->delete();
-        return redirect()->route('turmas.index');
-    }
+    public function updateWithPost(Request $request, Turma $turma)
+{
+    // Reutiliza a mesma lógica do método update original
+    return $this->update($request, $turma);
+}
+
+/**
+ * Remove the specified resource from storage using a POST request.
+ */
+public function destroy(Turma $turma)
+{
+    $turma->delete();
+
+    return redirect()->route('turmas.index')
+                      ->with('success', 'Turma excluída com sucesso!');
+}
+
+/**
+ * Remove the specified resource from storage using a POST request.
+ */
+public function destroyWithPost(Turma $turma)
+{
+    return $this->destroy($turma);
+}
 }
