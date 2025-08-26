@@ -40,7 +40,6 @@ class ProfessorController extends Controller
      */
     public function index()
     {
-        // A lógica do Index não precisa de alteração, pois apenas exibe os dados salvos.
         $professores = Professor::with('horariosDisponiveisPivot')->get();
 
         return Inertia::render('Professores/Index', [

@@ -21,6 +21,11 @@ Route::get('/', function () {
     ]);
 });
 
+// O jeito certo e limpo
+Route::get('/', function () {
+    return redirect()->route('login');
+});
+
 Route::get('/auth/google', [GoogleLoginController::class, 'redirectToGoogle'])->name('google.login');
 Route::get('/auth/google/callback', [GoogleLoginController::class, 'handleGoogleCallback'])->name('google.callback');
 
