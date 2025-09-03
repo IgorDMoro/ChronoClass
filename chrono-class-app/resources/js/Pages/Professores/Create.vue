@@ -2,6 +2,7 @@
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import InputError from "@/Components/InputError.vue";
 import { Head, useForm, Link } from "@inertiajs/vue3";
+import { computed } from 'vue'; // ADICIONADO
 
 const props = defineProps({
     diasDaSemana: Array,
@@ -17,6 +18,36 @@ const form = useForm({
     telefone: "",
     horarios_disponiveis_selecionados: [],
 });
+
+// --- LÓGICA ADICIONADA PARA O SÁBADO ---
+const isSabadoSelected = computed(() => {
+    // Verifica se pelo menos um dos horários de sábado está no array
+    return props.horariosDeAulaFinaisDeSemana.some(horario => 
+        form.horarios_disponiveis_selecionados.includes(`sábado-${horario}`)
+    );
+});
+
+const handleSabadoChange = (event) => {
+    const isChecked = event.target.checked;
+    
+    props.horariosDeAulaFinaisDeSemana.forEach(horario => {
+        const sabadoValue = `sábado-${horario}`;
+        
+        if (isChecked) {
+            // Adiciona se não estiver presente
+            if (!form.horarios_disponiveis_selecionados.includes(sabadoValue)) {
+                form.horarios_disponiveis_selecionados.push(sabadoValue);
+            }
+        } else {
+            // Remove se estiver presente
+            const index = form.horarios_disponiveis_selecionados.indexOf(sabadoValue);
+            if (index > -1) {
+                form.horarios_disponiveis_selecionados.splice(index, 1);
+            }
+        }
+    });
+};
+// --- FIM DA LÓGICA ADICIONADA ---
 
 const submit = () => {
     form.post(route("professores.store"), {
@@ -130,7 +161,14 @@ const formatDia = (dia) => {
                                                     {{ formatDia(dia) }}
                                                 </td>
                                                 <td v-for="horario in horariosDeAulaFinaisDeSemana" :key="`${dia}-${horario}`" class="px-3 py-3 text-center">
-                                                    <input type="checkbox" :id="`disponibilidade-${dia}-${horario}`" :value="`${dia}-${horario}`" v-model="form.horarios_disponiveis_selecionados" class="rounded border-gray-300/40 bg-neutral-900 text-orange-500 shadow-sm focus:ring-orange-500 focus:ring-offset-neutral-900" />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        :id="`disponibilidade-${dia}-${horario}`" 
+                                                        :value="`${dia}-${horario}`" 
+                                                        :checked="isSabadoSelected"
+                                                        @change="handleSabadoChange"
+                                                        class="rounded border-gray-300/40 bg-neutral-900 text-orange-500 shadow-sm focus:ring-orange-500 focus:ring-offset-neutral-900" 
+                                                    />
                                                 </td>
                                             </tr>
                                         </tbody>
