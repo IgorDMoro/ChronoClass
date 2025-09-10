@@ -32,7 +32,7 @@ const showingNavigationDropdown = ref(false);
                                 <NavLink :href="route('salas.index')" :active="route().current('salas.index')"> Salas </NavLink>
                                 <NavLink :href="route('professores.index')" :active="route().current('professores.index')"> Professores </NavLink>
                                 <NavLink :href="route('materias.index')" :active="route().current('materias.index')"> Materias </NavLink>
-                                <NavLink :href="route('grade_horarios.index')" :active="route().current('grade_horarios.index')"> Grade Horarios </NavLink>
+                                <NavLink :href="route('grades.index')" :active="route().current('grades.index')"> Grades </NavLink>
                                 <NavLink :href="route('turmas.index')" :active="route().current('turmas.index')"> Turmas </NavLink>
                             </div>
                         </div>

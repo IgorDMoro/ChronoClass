@@ -11,7 +11,6 @@ use App\Models\ProfessorHorarioDisponivel;
 
 class ProfessorController extends Controller
 {
-    // Definir as opções de dias e horários para reuso
     private $diasDaSemana = [
         'segunda',
         'terça',
@@ -43,7 +42,7 @@ class ProfessorController extends Controller
         $professores = Professor::with('horariosDisponiveisPivot')->get();
 
         return Inertia::render('Professores/Index', [
-            'professores' => $professores,
+            'professores' => $professores
         ]);
     }
 
@@ -52,7 +51,6 @@ class ProfessorController extends Controller
      */
     public function create()
     {
-        // Envia as 4 listas de dados para a view de criação
         return Inertia::render('Professores/Create', [
             'diasDaSemana' => $this->diasDaSemana,
             'finaisDeSemana' => $this->finaisDeSemana,
@@ -121,7 +119,6 @@ class ProfessorController extends Controller
      */
     public function update(Request $request, Professor $professor)
     {
-        // A validação e a lógica de atualização também não precisam de alteração.
         $validatedData = $request->validate([
             'matricula' => 'required|integer|unique:professores,matricula,' . $professor->id, 
             'nome' => 'required|string|max:255',

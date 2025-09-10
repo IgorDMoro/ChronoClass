@@ -9,7 +9,6 @@ class ProfessorHorarioDisponivel extends Model
 {
     use HasFactory;
 
-    // Garante que o nome da tabela está correto
     protected $table = 'professor_horarios_disponiveis';
 
     /**
