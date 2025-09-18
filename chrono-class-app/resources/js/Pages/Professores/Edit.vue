@@ -2,7 +2,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import InputError from '@/Components/InputError.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { onMounted, computed } from 'vue'; // ADICIONADO
+import { onMounted, computed } from 'vue'; 
 
 const props = defineProps({
     professor: Object,
@@ -20,16 +20,13 @@ const form = useForm({
     horarios_disponiveis_selecionados: [],
 });
 
-// Popula os horários já selecionados quando o componente é montado
 onMounted(() => {
     if (props.professor.horarios_disponiveis_pivot) {
         form.horarios_disponiveis_selecionados = props.professor.horarios_disponiveis_pivot.map(h => `${h.dia_semana}-${h.horario}`);
     }
 });
 
-// --- LÓGICA ADICIONADA PARA O SÁBADO ---
 const isSabadoSelected = computed(() => {
-    // Verifica se pelo menos um dos horários de sábado está no array
     return props.horariosDeAulaFinaisDeSemana.some(horario => 
         form.horarios_disponiveis_selecionados.includes(`sábado-${horario}`)
     );
@@ -42,12 +39,10 @@ const handleSabadoChange = (event) => {
         const sabadoValue = `sábado-${horario}`;
         
         if (isChecked) {
-            // Adiciona se não estiver presente
             if (!form.horarios_disponiveis_selecionados.includes(sabadoValue)) {
                 form.horarios_disponiveis_selecionados.push(sabadoValue);
             }
         } else {
-            // Remove se estiver presente
             const index = form.horarios_disponiveis_selecionados.indexOf(sabadoValue);
             if (index > -1) {
                 form.horarios_disponiveis_selecionados.splice(index, 1);
@@ -55,11 +50,9 @@ const handleSabadoChange = (event) => {
         }
     });
 };
-// --- FIM DA LÓGICA ADICIONADA ---
 
 
 const submit = () => {
-    // A rota de update agora usa POST para simplicidade e para evitar problemas com PUT em alguns servidores
     form.post(route('professores.update-post', props.professor.id), {
         onError: (errors) => {
             console.error('Erro ao atualizar professor:', errors);

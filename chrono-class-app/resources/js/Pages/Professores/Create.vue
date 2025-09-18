@@ -2,7 +2,7 @@
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import InputError from "@/Components/InputError.vue";
 import { Head, useForm, Link } from "@inertiajs/vue3";
-import { computed } from 'vue'; // ADICIONADO
+import { computed } from 'vue'; 
 
 const props = defineProps({
     diasDaSemana: Array,
@@ -19,9 +19,7 @@ const form = useForm({
     horarios_disponiveis_selecionados: [],
 });
 
-// --- LÓGICA ADICIONADA PARA O SÁBADO ---
 const isSabadoSelected = computed(() => {
-    // Verifica se pelo menos um dos horários de sábado está no array
     return props.horariosDeAulaFinaisDeSemana.some(horario => 
         form.horarios_disponiveis_selecionados.includes(`sábado-${horario}`)
     );
@@ -34,12 +32,10 @@ const handleSabadoChange = (event) => {
         const sabadoValue = `sábado-${horario}`;
         
         if (isChecked) {
-            // Adiciona se não estiver presente
             if (!form.horarios_disponiveis_selecionados.includes(sabadoValue)) {
                 form.horarios_disponiveis_selecionados.push(sabadoValue);
             }
         } else {
-            // Remove se estiver presente
             const index = form.horarios_disponiveis_selecionados.indexOf(sabadoValue);
             if (index > -1) {
                 form.horarios_disponiveis_selecionados.splice(index, 1);
@@ -47,7 +43,6 @@ const handleSabadoChange = (event) => {
         }
     });
 };
-// --- FIM DA LÓGICA ADICIONADA ---
 
 const submit = () => {
     form.post(route("professores.store"), {

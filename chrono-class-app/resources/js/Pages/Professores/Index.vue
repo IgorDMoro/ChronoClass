@@ -3,7 +3,6 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
-// --- Lógica do Modal de Exclusão ---
 const showConfirmDeleteModal = ref(false);
 const professorToDelete = ref(null);
 
@@ -33,7 +32,6 @@ const executeDelete = () => {
         }
     });
 };
-// --- Fim da Lógica do Modal ---
 
 
 const props = defineProps({

@@ -14,12 +14,12 @@ return new class extends Migration
         Schema::create('professores', function (Blueprint $table) {
             $table->id(); // id: bigint, PK, auto-increment
             $table->integer('matricula')->unique();
-            $table->string('nome'); // nome: string
-            $table->string('email')->nullable(); // email: string, opcional
-            $table->string('telefone')->nullable(); // telefone: string, opcional
-            $table->timestamps(); // criado_em e atualizado_em: timestamp, opcional (gerenciados pelo Laravel)
-            $table->string('dias_disponiveis')->nullable(); // Dias da semana disponíveis
-            $table->string('horarios_disponiveis')->nullable(); // Horários disponíveis
+            $table->string('nome'); 
+            $table->string('email')->nullable(); 
+            $table->string('telefone')->nullable(); 
+            $table->timestamps(); 
+            $table->string('dias_disponiveis')->nullable(); 
+            $table->string('horarios_disponiveis')->nullable();
         });
     }
 

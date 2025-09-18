@@ -8,7 +8,7 @@ use App\Http\Controllers\ProfessorController;
 use App\Http\Controllers\SalaController;
 use App\Http\Controllers\MateriaController;
 use App\Http\Controllers\TurmaController;
-use App\Http\Controllers\GradeController; // Adicionado
+use App\Http\Controllers\GradeController;
 
 // --- Rotas Públicas ---
 
@@ -22,7 +22,7 @@ Route::get('/auth/google/callback', [GoogleLoginController::class, 'handleGoogle
 // --- Rotas Autenticadas ---
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    
+
     Route::get('/dashboard', function () {
         return Inertia::render('Dashboard');
     })->name('dashboard');
@@ -64,15 +64,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/turmas/{turma}/update-post', [TurmaController::class, 'updateWithPost'])->name('turmas.update-post');
     Route::post('/turmas/{turma}/delete-post', [TurmaController::class, 'destroyWithPost'])->name('turmas.delete-post');
 
-    
-Route::get('/grades', [GradeController::class, 'index'])->name('grades.index');
-Route::get('/grades/create', [GradeController::class, 'create'])->name('grades.create');
-Route::post('/grades', [GradeController::class, 'store'])->name('grades.store');
-Route::get('/grades/{grade}', [GradeController::class, 'show'])->name('grades.show');
-Route::get('/grades/{grade}/edit', [GradeController::class, 'edit'])->name('grades.edit');
-Route::post('/grades/{grade}', [GradeController::class, 'destroy'])->name('grades.destroy');
-Route::post('/grades/{grade}/pin', [GradeController::class, 'pin'])->name('grades.pin');
-
+    // Grades  
+    Route::get('/grades', [GradeController::class, 'index'])->name('grades.index');
+    Route::get('/grades/create', [GradeController::class, 'create'])->name('grades.create');
+    Route::post('/grades', [GradeController::class, 'store'])->name('grades.store');
+    Route::get('/grades/{grade}', [GradeController::class, 'show'])->name('grades.show');
+    Route::get('/grades/{grade}/edit', [GradeController::class, 'edit'])->name('grades.edit');
+    Route::post('/grades/{grade}', [GradeController::class, 'destroy'])->name('grades.destroy');
+    Route::post('/grades/{grade}/pin', [GradeController::class, 'pin'])->name('grades.pin');
 });
 
 require __DIR__ . '/auth.php';
