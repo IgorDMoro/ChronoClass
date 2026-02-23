@@ -4,7 +4,7 @@ import { Head, Link, useForm } from "@inertiajs/vue3";
 import { ref } from 'vue';
 
 const props = defineProps({
-    materias: Object, // Alterado de Array para Object para receber dados paginados
+    materias: Object, 
 });
 
 const form = useForm({});

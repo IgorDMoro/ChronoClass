@@ -9,6 +9,7 @@ const props = defineProps({
     finaisDeSemana: Array,
     horariosDeAula: Array,
     horariosDeAulaFinaisDeSemana: Array,
+    grupos: Array,
 });
 
 const form = useForm({
@@ -17,6 +18,7 @@ const form = useForm({
     email: "",
     telefone: "",
     horarios_disponiveis_selecionados: [],
+    grupos_ids: [],
 });
 
 const isSabadoSelected = computed(() => {
@@ -182,7 +184,30 @@ const formatDia = (dia) => {
                                 <InputError class="mt-2" :message="form.errors.horarios_disponiveis_selecionados" />
                             </div>
 
-                            <!-- Ações do formulário adaptadas -->
+                            <!-- Seção de Grupos de Matérias -->
+                            <div class="mt-8 border-t border-gray-200 dark:border-neutral-700 pt-6">
+                                <h4 class="text-lg font-semibold text-gray-800 dark:text-gray-300 mb-3">
+                                    Grupos de Matérias
+                                </h4>
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                                    Selecione os grupos de matérias que este professor pode ensinar:
+                                </p>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div v-for="grupo in grupos" :key="grupo.id" class="flex items-center">
+                                        <input 
+                                            type="checkbox" 
+                                            :id="`grupo-${grupo.id}`" 
+                                            :value="grupo.id" 
+                                            v-model.number="form.grupos_ids"
+                                            class="rounded border-gray-300 dark:border-gray-300/40 bg-gray-100 dark:bg-neutral-900 text-orange-500 shadow-sm focus:ring-orange-500 focus:ring-offset-white dark:focus:ring-offset-neutral-900" 
+                                        />
+                                        <label :for="`grupo-${grupo.id}`" class="ms-2 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+                                            {{ grupo.nome }}
+                                        </label>
+                                    </div>
+                                </div>
+                                <InputError class="mt-2" :message="form.errors.grupos_ids" />
+                            </div>
                             <div class="flex items-center justify-end mt-8 pt-6 border-t border-gray-200 dark:border-neutral-700">
                                 <!-- Botão Cancelar adaptado -->
                                 <Link :href="route('professores.index')" class="inline-flex items-center px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-md font-semibold text-xs text-gray-800 dark:text-gray-300 uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-neutral-700 dark:hover:border-neutral-700 focus:outline-none">

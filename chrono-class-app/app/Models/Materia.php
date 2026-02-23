@@ -27,11 +27,17 @@ class Materia extends Model
         'carga_horaria',
         'modalidade',   
         'comp_tipo',    
-        'ensw_tipo',    
-        
-        
-        
+        'ensw_tipo',
+        'grupo_id',
     ];
+
+    /**
+     * Get the grupo that this materia belongs to.
+     */
+    public function grupo()
+    {
+        return $this->belongsTo(GrupoMateria::class, 'grupo_id');
+    }
 
     /**
      * Get the grade_horarios for the materia.

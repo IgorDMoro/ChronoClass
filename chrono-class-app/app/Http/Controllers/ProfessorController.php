@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Professor;
+use App\Models\GrupoMateria;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Redirect;
@@ -39,7 +40,7 @@ class ProfessorController extends Controller
      */
     public function index()
     {
-        $professores = Professor::with('horariosDisponiveisPivot')->get();
+        $professores = Professor::with(['horariosDisponiveisPivot', 'gruposMaterias'])->get();
 
         return Inertia::render('Professores/Index', [
             'professores' => $professores
@@ -56,6 +57,7 @@ class ProfessorController extends Controller
             'finaisDeSemana' => $this->finaisDeSemana,
             'horariosDeAula' => $this->horariosDeAula,
             'horariosDeAulaFinaisDeSemana' => $this->horariosDeAulaFinaisDeSemana,
+            'grupos' => GrupoMateria::all(),
         ]);
     }
 
@@ -72,6 +74,8 @@ class ProfessorController extends Controller
             'telefone' => 'nullable|string|max:20',
             'horarios_disponiveis_selecionados' => 'nullable|array',
             'horarios_disponiveis_selecionados.*' => 'string|regex:/^[a-zA-ZáàâãéèêíìîóòôõúùûçÇ]+-\d{2}:\d{2}-\d{2}:\d{2}$/',
+            'grupos_ids' => 'nullable|array',
+            'grupos_ids.*' => 'exists:grupos_materias,id',
         ]);
 
         DB::transaction(function () use ($validatedData) {
@@ -91,6 +95,10 @@ class ProfessorController extends Controller
                     ]);
                 }
             }
+
+            if (!empty($validatedData['grupos_ids'])) {
+                $professor->gruposMaterias()->sync($validatedData['grupos_ids']);
+            }
         });
 
         return Redirect::route('professores.index')
@@ -102,15 +110,15 @@ class ProfessorController extends Controller
      */ 
     public function edit(Professor $professor)
     {
-        $professor->load('horariosDisponiveisPivot');
+        $professor->load(['horariosDisponiveisPivot', 'gruposMaterias']);
 
-        // Envia as 4 listas de dados para a view de edição
         return Inertia::render('Professores/Edit', [
             'professor' => $professor,
             'diasDaSemana' => $this->diasDaSemana,
             'finaisDeSemana' => $this->finaisDeSemana,
             'horariosDeAula' => $this->horariosDeAula,
             'horariosDeAulaFinaisDeSemana' => $this->horariosDeAulaFinaisDeSemana,
+            'grupos' => GrupoMateria::all(),
         ]);
     }
 
@@ -126,6 +134,8 @@ class ProfessorController extends Controller
             'telefone' => 'nullable|string|max:20',
             'horarios_disponiveis_selecionados' => 'nullable|array',
             'horarios_disponiveis_selecionados.*' => 'string|regex:/^[a-zA-ZáàâãéèêíìîóòôõúùûçÇ]+-\d{2}:\d{2}-\d{2}:\d{2}$/',
+            'grupos_ids' => 'nullable|array',
+            'grupos_ids.*' => 'exists:grupos_materias,id',
         ]);
 
         DB::transaction(function () use ($validatedData, $professor) {
@@ -147,6 +157,8 @@ class ProfessorController extends Controller
                     ]);
                 }
             }
+
+            $professor->gruposMaterias()->sync($validatedData['grupos_ids'] ?? []);
         });
 
         return Redirect::route('professores.index')

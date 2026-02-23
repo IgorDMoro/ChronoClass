@@ -6,6 +6,8 @@ use App\Models\Grade;
 use App\Models\Horario;
 use App\Models\Materia;
 use App\Models\Professor;
+use App\Models\Sala;
+use App\Models\GrupoMateria;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
@@ -22,11 +24,27 @@ class GradeController extends Controller
     public function create()
     {
         return Inertia::render('Grades/Create', [
-            'materias_presenciais' => Materia::where('modalidade', 'Presencial')->get(),
-            'materias_ucd' => Materia::where('modalidade', 'UCD')->get(),
-            'professores' => Professor::with('materias', 'disponibilidade')->get(),
+            'grupos' => GrupoMateria::with('materias')->get(),
+            'materias_presenciais' => Materia::where('modalidade', 'Presencial')->with('grupo')->get(),
+            'materias_ucd' => Materia::where('modalidade', 'UCD')->with('grupo')->get(),
+            'professores' => Professor::with(['materias', 'gruposMaterias', 'horariosDisponiveisPivot'])->get(),
             'existingHorarios' => Horario::with('grade:id,nome')->select('dia_semana', 'horario_bloco', 'professor_id', 'grade_id')->get(),
+            'salas' => Sala::all(),
         ]);
+    }
+
+    /**
+     * Get professores that teach a specific materia.
+     */
+    public function getProfessoresPorMateria($materiaId)
+    {
+        $materia = Materia::with('grupo.professores')->findOrFail($materiaId);
+        
+        if ($materia->grupo) {
+            return response()->json($materia->grupo->professores);
+        }
+
+        return response()->json(Professor::all());
     }
 
     public function store(Request $request)

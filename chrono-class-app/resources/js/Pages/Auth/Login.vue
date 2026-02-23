@@ -33,6 +33,15 @@ const logoUrl = '/imgs/UniFil_Logo Isolado Horizontal-01.png';
                     
                     <span>Entrar com Google</span>
                 </a>
+
+                <!-- Login de teste para offline -->
+                <div class="mt-4 pt-4 border-t border-gray-300">
+                    <p class="mb-3 text-xs text-gray-500">Sem conexão? Use o login de teste:</p>
+                    <a :href="route('login.test')"
+                       class="inline-flex w-full items-center justify-center rounded-md border border-gray-500 bg-gray-100 px-4 py-3 text-sm font-medium text-gray-700 shadow-sm transition duration-150 ease-in-out hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+                        <span>Acessar como Teste (Offline)</span>
+                    </a>
+                </div>
             </div>
         </div>
     </GuestLayout>

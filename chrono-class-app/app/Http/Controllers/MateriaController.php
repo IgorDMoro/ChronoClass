@@ -3,11 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Materia;
+use App\Models\GrupoMateria;
 use Illuminate\Http\Request;
-use Inertia\Inertia; // Importar o Inertia
+use Inertia\Inertia;
 use Illuminate\Validation\Rule;
-use Maatwebsite\Excel\Facades\Excel; // Para importação
-use App\Imports\MateriasImport; // Para importação
+use Maatwebsite\Excel\Facades\Excel;
+use App\Imports\MateriasImport;
 
 class MateriaController extends Controller
 {
@@ -15,18 +16,20 @@ class MateriaController extends Controller
      * Display a listing of the resource.
      */
     public function index()
-{
-    return Inertia::render('Materias/Index', [
-        'materias' => Materia::paginate(10) // A mudança principal é aqui!
-    ]);
-}
+    {
+        return Inertia::render('Materias/Index', [
+            'materias' => Materia::with('grupo')->paginate(10)
+        ]);
+    }
 
     /**
      * Show the form for creating a new resource.
      */
     public function create()
     {
-        return Inertia::render('Materias/Create');
+        return Inertia::render('Materias/Create', [
+            'grupos' => GrupoMateria::all(),
+        ]);
     }
 
     /**
@@ -41,6 +44,7 @@ class MateriaController extends Controller
             'modalidade' => ['required', 'string', Rule::in(['Presencial', 'UCD'])],
             'comp_tipo' => ['required', 'string', Rule::in(['Core', 'Flex'])],
             'ensw_tipo' => ['required', 'string', Rule::in(['Core', 'Flex'])],
+            'grupo_id' => 'nullable|exists:grupos_materias,id',
         ]);
 
         Materia::create($validated);
@@ -66,6 +70,7 @@ class MateriaController extends Controller
     {
         return Inertia::render('Materias/Edit', [
             'materia' => $materia,
+            'grupos' => GrupoMateria::all(),
         ]);
     }
 
@@ -81,6 +86,7 @@ class MateriaController extends Controller
             'modalidade' => ['required', 'string', Rule::in(['Presencial', 'UCD'])],
             'comp_tipo' => ['required', 'string', Rule::in(['Core', 'Flex'])],
             'ensw_tipo' => ['required', 'string', Rule::in(['Core', 'Flex'])],
+            'grupo_id' => 'nullable|exists:grupos_materias,id',
         ]);
 
         $materia->update($validated);
@@ -101,16 +107,14 @@ class MateriaController extends Controller
     }
 
     public function updateWithPost(Request $request, Materia $materia)
-{
-    // Reutiliza a mesma lógica do método update original
-    return $this->update($request, $materia);
-}
+    {
+        return $this->update($request, $materia);
+    }
 
-public function destroyWithPost(Materia $materia)
-{
-    // Reutiliza a mesma lógica do método destroy original
-    return $this->destroy($materia);
-}
+    public function destroyWithPost(Materia $materia)
+    {
+        return $this->destroy($materia);
+    }
 
     /**
      * Handle the import of materias from a file.
@@ -129,7 +133,6 @@ public function destroyWithPost(Materia $materia)
             $failures = $e->failures();
             $errors = [];
             foreach ($failures as $failure) {
-                // Formatar os erros para exibir no Inertia flash message
                 $errors[] = "Linha " . $failure->row() . ": " . implode(", ", $failure->errors());
             }
             return redirect()->back()

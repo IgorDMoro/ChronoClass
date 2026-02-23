@@ -8,9 +8,8 @@ use App\Http\Controllers\ProfessorController;
 use App\Http\Controllers\SalaController;
 use App\Http\Controllers\MateriaController;
 use App\Http\Controllers\TurmaController;
+use App\Http\Controllers\GrupoMateriaController;
 use App\Http\Controllers\GradeController;
-
-// --- Rotas Públicas ---
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -19,9 +18,24 @@ Route::get('/', function () {
 Route::get('/auth/google', [GoogleLoginController::class, 'redirectToGoogle'])->name('google.login');
 Route::get('/auth/google/callback', [GoogleLoginController::class, 'handleGoogleCallback'])->name('google.callback');
 
+// Login de teste temporário (sem conexão com internet)
+Route::get('/login-test', function () {
+    $user = \App\Models\User::firstOrCreate(
+        ['email' => 'test@test.com'],
+        [
+            'name' => 'Teste User',
+            'password' => bcrypt('password'),
+            'email_verified_at' => now(),
+        ]
+    );
+    \Illuminate\Support\Facades\Auth::login($user);
+    return redirect()->route('dashboard');
+})->name('login.test');
+
 // --- Rotas Autenticadas ---
 
-Route::middleware(['auth', 'verified'])->group(function () {
+// Temporariamente removido 'verified' para pular verificação de email
+Route::middleware('auth')->group(function () {
 
     Route::get('/dashboard', function () {
         return Inertia::render('Dashboard');
@@ -56,6 +70,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/materias/{materia}/update-post', [MateriaController::class, 'updateWithPost'])->name('materias.update-post');
     Route::post('/materias/{materia}/delete-post', [MateriaController::class, 'destroyWithPost'])->name('materias.delete-post');
 
+    // Grupos de Matérias
+    Route::get('/grupos-materias', [GrupoMateriaController::class, 'index'])->name('grupos_materias.index');
+    Route::get('/grupos-materias/create', [GrupoMateriaController::class, 'create'])->name('grupos_materias.create');
+    Route::post('/grupos-materias', [GrupoMateriaController::class, 'store'])->name('grupos_materias.store');
+    Route::get('/grupos-materias/{grupoMateria}/edit', [GrupoMateriaController::class, 'edit'])->name('grupos_materias.edit');
+    Route::patch('/grupos-materias/{grupoMateria}', [GrupoMateriaController::class, 'update'])->name('grupos_materias.update');
+    Route::post('/grupos-materias/{grupoMateria}/update-post', [GrupoMateriaController::class, 'updateWithPost'])->name('grupos_materias.update-post');
+    Route::delete('/grupos-materias/{grupoMateria}', [GrupoMateriaController::class, 'destroy'])->name('grupos_materias.destroy');
+    Route::post('/grupos-materias/{grupoMateria}/destroy-post', [GrupoMateriaController::class, 'destroyWithPost'])->name('grupos_materias.destroy-post');
+
     // Turmas
     Route::get('/turmas', [TurmaController::class, 'index'])->name('turmas.index');
     Route::get('/turmas/create', [TurmaController::class, 'create'])->name('turmas.create');
@@ -67,6 +91,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Grades  
     Route::get('/grades', [GradeController::class, 'index'])->name('grades.index');
     Route::get('/grades/create', [GradeController::class, 'create'])->name('grades.create');
+    Route::get('/grades/api/professores-por-materia/{materiaId}', [GradeController::class, 'getProfessoresPorMateria'])->name('grades.professores-por-materia');
     Route::post('/grades', [GradeController::class, 'store'])->name('grades.store');
     Route::get('/grades/{grade}', [GradeController::class, 'show'])->name('grades.show');
     Route::get('/grades/{grade}/edit', [GradeController::class, 'edit'])->name('grades.edit');

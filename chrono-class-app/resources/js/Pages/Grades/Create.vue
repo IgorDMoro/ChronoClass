@@ -8,10 +8,12 @@ import { Head, useForm } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 
 const props = defineProps({
+    grupos: Array,
     materias_presenciais: Array,
     materias_ucd: Array,
     professores: Array,
     existingHorarios: Array,
+    salas: Array, // <-- 1. CORREÇÃO: Prop de salas adicionada
 });
 
 // --- Estado do Componente ---
@@ -26,6 +28,8 @@ const form = useForm({
 const showSabado = ref(false);
 const showUcd = ref(false);
 const conflictWarnings = ref({});
+const filteredProfessores = ref({});
+const loadingProfessores = ref({});
 
 const diasDaSemana = ['SEGUNDA', 'TERÇA', 'QUARTA', 'QUINTA', 'SEXTA'];
 const horariosBlocos = ['19:00-20:30', '20:45-22:15'];
@@ -40,7 +44,8 @@ const gradeVisual = ref(diasDaSemana.reduce((acc, dia) => {
         slots: [{
             id: Date.now() + Math.random(),
             type: null,
-            aula: { professor_id: '', materia_id: '', sala: '', classroom_code: '' },
+            // <-- 2. CORREÇÃO: Usando 'sala_id'
+            aula: { professor_id: '', materia_id: '', sala_id: '', classroom_code: '' }, 
             flex_aulas: [],
         }],
     }));
@@ -51,8 +56,32 @@ const gradeSabado = ref({ estagio: false });
 const gradeUcd = ref([]);
 
 // --- Lógica de Filtros e Verificações ---
-const materiasCore = computed(() => props.materias_presenciais.filter(m => m.tipo === 'Core'));
-const materiasFlex = computed(() => props.materias_presenciais.filter(m => m.tipo === 'Flex'));
+const materiasCore = computed(() => props.materias_presenciais);
+const materiasFlex = computed(() => props.materias_presenciais);
+
+/**
+ * Fetch professors for a selected materia from the backend API
+ */
+const getProfessoresParaMateria = async (materiaId, slotId) => {
+    if (!materiaId) {
+        filteredProfessores.value[slotId] = [];
+        return;
+    }
+
+    const key = `slot-${slotId}`;
+    loadingProfessores.value[key] = true;
+
+    try {
+        const response = await fetch(`/grades/api/professores-por-materia/${materiaId}`);
+        const data = await response.json();
+        filteredProfessores.value[slotId] = data;
+    } catch (error) {
+        console.error('Erro ao buscar professores:', error);
+        filteredProfessores.value[slotId] = [];
+    } finally {
+        loadingProfessores.value[key] = false;
+    }
+};
 
 const getProfessoresFiltrados = (diaKey, horario) => {
     const disponiveis = [], indisponiveis = [];
@@ -110,7 +139,8 @@ const addSlot = (celula) => {
         celula.slots.push({
             id: Date.now(),
             type: null,
-            aula: { professor_id: '', materia_id: '', sala: '', classroom_code: '' },
+            // <-- 3. CORREÇÃO: Usando 'sala_id'
+            aula: { professor_id: '', materia_id: '', sala_id: '', classroom_code: '' },
             flex_aulas: [],
         });
     }
@@ -118,9 +148,13 @@ const addSlot = (celula) => {
 
 const removeSlot = (celula, slotIndex) => celula.slots.splice(slotIndex, 1);
 const setSlotType = (slot, type) => slot.type = type;
-const addFlexAula = (slot) => slot.flex_aulas.push({ id: Date.now(), professor_id: '', materia_id: '', sala: '', classroom_code: '' });
+
+// <-- 3. CORREÇÃO: Usando 'sala_id'
+const addFlexAula = (slot) => slot.flex_aulas.push({ id: Date.now(), professor_id: '', materia_id: '', sala_id: '', classroom_code: '' });
 const removeFlexAula = (slot, flexIndex) => slot.flex_aulas.splice(flexIndex, 1);
-const addUcd = () => gradeUcd.value.push({ dia_semana: 'ATIVIDADE_DIGITAL', horario_bloco: 'N/A', materia_id: '', professor_id: '', sala: '', classroom_code: '' });
+
+// <-- 5. CORREÇÃO: Usando 'sala_id'
+const addUcd = () => gradeUcd.value.push({ dia_semana: 'ATIVIDADE_DIGITAL', horario_bloco: 'N/A', materia_id: '', professor_id: '', sala_id: '', classroom_code: '' });
 const removeUcd = (index) => gradeUcd.value.splice(index, 1);
 
 // --- Submissão do Formulário ---
@@ -149,7 +183,7 @@ const submit = () => {
         const materiaEstagio = props.materias_presenciais.find(m => m.nome.toLowerCase().includes('estágio'));
         if (materiaEstagio) {
             const primeiroProfessorId = props.professores[0]?.id || null;
-            horariosPreenchidos.push({ dia_semana: 'SABADO', horario_bloco: horarioSabado, materia_id: materiaEstagio.id, professor_id: primeiroProfessorId, sala: 'N/A', classroom_code: 'N/A' });
+            horariosPreenchidos.push({ dia_semana: 'SABADO', horario_bloco: horarioSabado, materia_id: materiaEstagio.id, professor_id: primeiroProfessorId, sala_id: null, classroom_code: 'N/A' }); // Ajustado para sala_id
         }
     }
 
@@ -227,15 +261,23 @@ const submit = () => {
 
                                                         <div v-if="slot.type && slot.type !== 'Flex'" class="space-y-1.5">
                                                             <p class="text-[11px] font-bold text-center" :class="{'text-blue-800': slot.type.includes('Engenharia'), 'text-green-800': slot.type.includes('Ciências'), 'text-indigo-800': slot.type.includes('Ambos')}">{{ slot.type }}</p>
-                                                            <select v-model="slot.aula.professor_id" @change="checkForConflict(slot.aula, gradeVisual[dia][hIndex], slot.id)" class="block w-full rounded-md border-gray-300 text-xs">
-                                                                <option value="" disabled>Professor</option>
-                                                                <option v-for="prof in getProfessoresFiltrados(dia.toLowerCase().substring(0,3), bloco)" :key="prof.id" :value="prof.id" :class="{'text-gray-400':!prof.disponivel}">{{ prof.nome }}</option>
-                                                            </select>
-                                                            <select v-model="slot.aula.materia_id" :disabled="!slot.aula.professor_id" class="block w-full rounded-md border-gray-300 text-xs disabled:bg-gray-100">
+                                                            <select v-model="slot.aula.materia_id" @change="getProfessoresParaMateria(slot.aula.materia_id, slot.id)" class="block w-full rounded-md border-gray-300 text-xs">
                                                                 <option value="" disabled>Matéria</option>
-                                                                <option v-for="materia in getMateriasParaProfessor(slot.aula.professor_id, 'Core', slot.type)" :key="materia.id" :value="materia.id">{{ materia.nome }}</option>
+                                                                <option v-for="materia in materiasCore" :key="materia.id" :value="materia.id">{{ materia.nome }}</option>
                                                             </select>
-                                                            <TextInput type="text" v-model="slot.aula.sala" placeholder="Sala" class="text-xs w-full" />
+                                                            <div v-if="loadingProfessores[`slot-${slot.id}`]" class="text-[10px] text-gray-500 italic">Carregando professores...</div>
+                                                            <select v-model="slot.aula.professor_id" @change="checkForConflict(slot.aula, gradeVisual[dia][hIndex], slot.id)" :disabled="!slot.aula.materia_id || loadingProfessores[`slot-${slot.id}`]" class="block w-full rounded-md border-gray-300 text-xs disabled:bg-gray-100">
+                                                                <option value="" disabled>Professor</option>
+                                                                <option v-for="prof in (filteredProfessores[slot.id] || [])" :key="prof.id" :value="prof.id">{{ prof.nome }}</option>
+                                                            </select>
+                                                            
+                                                            <select v-model="slot.aula.sala_id" class="block w-full rounded-md border-gray-300 text-xs">
+                                                                <option value="" disabled>Sala</option>
+                                                                <option v-for="sala in props.salas" :key="sala.id" :value="sala.id">
+                                                                    {{ sala.nome }} (Cap: {{ sala.capacidade }})
+                                                                </option>
+                                                            </select>
+
                                                             <TextInput type="text" v-model="slot.aula.classroom_code" placeholder="Classroom" class="text-xs w-full" />
                                                             <div v-if="conflictWarnings[`${gradeVisual[dia][hIndex].dia_semana}-${gradeVisual[dia][hIndex].horario_bloco}-${slot.id}`]" class="text-[10px] text-orange-600 p-1 bg-orange-100 rounded">
                                                                 {{ conflictWarnings[`${gradeVisual[dia][hIndex].dia_semana}-${gradeVisual[dia][hIndex].horario_bloco}-${slot.id}`] }}
@@ -247,15 +289,23 @@ const submit = () => {
                                                             <div v-for="(flexAula, fIndex) in slot.flex_aulas" :key="flexAula.id" class="space-y-1.5 border-t pt-1.5">
                                                                 <div class="flex gap-1.5 items-start">
                                                                     <div class="flex-1 space-y-1.5">
-                                                                        <select v-model="flexAula.professor_id" class="block w-full rounded-md border-gray-300 text-xs">
-                                                                            <option value="" disabled>Professor</option>
-                                                                            <option v-for="prof in getProfessoresFiltrados(dia.toLowerCase().substring(0,3), bloco)" :key="prof.id" :value="prof.id" :class="{'text-gray-400':!prof.disponivel}">{{ prof.nome }}</option>
-                                                                        </select>
-                                                                        <select v-model="flexAula.materia_id" :disabled="!flexAula.professor_id" class="block w-full rounded-md border-gray-300 text-xs disabled:bg-gray-100">
+                                                                        <select v-model="flexAula.materia_id" @change="getProfessoresParaMateria(flexAula.materia_id, `flex-${slot.id}-${fIndex}`)" class="block w-full rounded-md border-gray-300 text-xs">
                                                                             <option value="" disabled>Matéria</option>
-                                                                            <option v-for="materia in getMateriasParaProfessor(flexAula.professor_id, 'Flex', slot.type)" :key="materia.id" :value="materia.id">{{ materia.nome }}</option>
+                                                                            <option v-for="materia in materiasFlex" :key="materia.id" :value="materia.id">{{ materia.nome }}</option>
                                                                         </select>
-                                                                        <TextInput type="text" v-model="flexAula.sala" placeholder="Sala" class="text-xs w-full" />
+                                                                        <div v-if="loadingProfessores[`slot-flex-${slot.id}-${fIndex}`]" class="text-[10px] text-gray-500 italic">Carregando professores...</div>
+                                                                        <select v-model="flexAula.professor_id" :disabled="!flexAula.materia_id || loadingProfessores[`slot-flex-${slot.id}-${fIndex}`]" class="block w-full rounded-md border-gray-300 text-xs disabled:bg-gray-100">
+                                                                            <option value="" disabled>Professor</option>
+                                                                            <option v-for="prof in (filteredProfessores[`flex-${slot.id}-${fIndex}`] || [])" :key="prof.id" :value="prof.id">{{ prof.nome }}</option>
+                                                                        </select>
+                                                                        
+                                                                        <select v-model="flexAula.sala_id" class="block w-full rounded-md border-gray-300 text-xs">
+                                                                            <option value="" disabled>Sala</option>
+                                                                            <option v-for="sala in props.salas" :key="sala.id" :value="sala.id">
+                                                                                {{ sala.nome }} (Cap: {{ sala.capacidade }})
+                                                                            </option>
+                                                                        </select>
+
                                                                         <TextInput type="text" v-model="flexAula.classroom_code" placeholder="Classroom" class="text-xs w-full" />
                                                                     </div>
                                                                     <button @click="removeFlexAula(slot, fIndex)" type="button" class="text-red-500 font-bold p-0.5 rounded-full hover:bg-red-100 mt-1">&times;</button>
@@ -312,10 +362,17 @@ const submit = () => {
                                                 <option v-for="professor in getProfessoresParaUCD(ucd.materia_id)" :key="professor.id" :value="professor.id">{{ professor.nome }}</option>
                                             </select>
                                         </div>
+                                        
                                         <div class="md:col-span-2">
                                             <InputLabel :for="'ucd_sala_'+index" class="text-xs mb-1">Sala</InputLabel>
-                                            <TextInput :id="'ucd_sala_'+index" type="text" v-model="ucd.sala" class="w-full text-xs" />
+                                            <select :id="'ucd_sala_'+index" v-model="ucd.sala_id" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-xs">
+                                                <option value="" disabled>Selecione a Sala</option>
+                                                <option v-for="sala in props.salas" :key="sala.id" :value="sala.id">
+                                                    {{ sala.nome }} (Cap: {{ sala.capacidade }})
+                                                </option>
+                                            </select>
                                         </div>
+
                                         <div class="md:col-span-2">
                                             <InputLabel :for="'ucd_code_'+index" class="text-xs mb-1">Classroom</InputLabel>
                                             <TextInput :id="'ucd_code_'+index" type="text" v-model="ucd.classroom_code" class="w-full text-xs" />
