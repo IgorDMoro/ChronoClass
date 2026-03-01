@@ -5,23 +5,23 @@ import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { Head, useForm, Link } from '@inertiajs/vue3';
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 
 const props = defineProps({
-    grupos: Array,
+    grade: Object,
+    existingHorarios: Array,
     materias_presenciais: Array,
     materias_ucd: Array,
     professores: Array,
-    existingHorarios: Array,
-    salas: Array, // <-- 1. CORREÇÃO: Prop de salas adicionada
+    salas: Array,
 });
 
 // --- Estado do Componente ---
 const form = useForm({
-    nome: '',
-    description: '',
-    curso: [],
-    semestre: '',
+    nome: props.grade?.nome || '',
+    description: props.grade?.description || '',
+    curso: props.grade?.curso || [],
+    semestre: props.grade?.semestre || '',
     horarios: [],
 });
 
@@ -59,6 +59,62 @@ const gradeVisual = ref(diasDaSemana.reduce((acc, dia) => {
 const gradeSabado = ref({ estagio: false });
 const gradeUcd = ref([]);
 
+// --- Carrega dados existentes ---
+const loadExistingGrade = () => {
+    if (!props.existingHorarios || props.existingHorarios.length === 0) {
+        return;
+    }
+
+    // Agrupa horários por dia da semana e horário de bloco
+    const horariosGrouped = {};
+    props.existingHorarios.forEach(horario => {
+        const key = `${horario.dia_semana}-${horario.horario_bloco}`;
+        if (!horariosGrouped[key]) horariosGrouped[key] = [];
+        horariosGrouped[key].push(horario);
+    });
+
+    // Popula a grade visual
+    Object.values(gradeVisual.value).forEach(diaDeAulas => {
+        diaDeAulas.forEach((celula, celulaIndex) => {
+            const key = `${celula.dia_semana}-${celula.horario_bloco}`;
+            const horariosCelula = horariosGrouped[key] || [];
+
+            if (horariosCelula.length > 0) {
+                celula.slots = horariosCelula.map(horario => {
+                    const materia = props.materias_presenciais?.find(m => m.id === horario.materia_id);
+                    const professor = props.professores?.find(p => p.id === horario.professor_id);
+                    const sala = props.salas?.find(s => s.nome === horario.sala);
+
+                    const slot = {
+                        id: horario.id,
+                        type: materia?.curso || 'Ambos (Core)',
+                        confirmed: true,
+                        aula: {
+                            professor_id: horario.professor_id,
+                            materia_id: horario.materia_id,
+                            sala: horario.sala,
+                            classroom_code: horario.classroom_code || '',
+                        },
+                        flex_aulas: [],
+                        original_id: horario.id,
+                    };
+
+                    materiaNames.value[slot.id] = materia?.nome || '';
+                    professorNames.value[slot.id] = professor?.nome || '';
+                    salaInfo.value[slot.id] = sala || { nome: horario.sala };
+
+                    return slot;
+                });
+
+                // Remove o slot vazio inicial se houver slots carregados
+                if (celula.slots.length > 0 && !celula.slots[0].aula.materia_id) {
+                    celula.slots = celula.slots.filter(s => s.aula.materia_id);
+                }
+            }
+        });
+    });
+};
+
 // --- Lógica de Filtros e Verificações ---
 const materiasCore = computed(() => props.materias_presenciais);
 const materiasFlex = computed(() => props.materias_presenciais);
@@ -67,9 +123,6 @@ const canSubmit = computed(() => {
     return form.nome && form.semestre && form.curso.length > 0;
 });
 
-/**
- * Fetch professors for a selected materia from the backend API
- */
 const getProfessoresParaMateria = async (materiaId, slotId) => {
     if (!materiaId) {
         filteredProfessores.value[slotId] = [];
@@ -91,37 +144,6 @@ const getProfessoresParaMateria = async (materiaId, slotId) => {
     }
 };
 
-const getProfessoresFiltrados = (diaKey, horario) => {
-    const disponiveis = [], indisponiveis = [];
-    props.professores.forEach(prof => {
-        const temDisponibilidade = prof.disponibilidade?.[diaKey]?.includes(horario);
-        const profComStatus = { ...prof, disponivel: !!temDisponibilidade };
-        temDisponibilidade ? disponiveis.push(profComStatus) : indisponiveis.push(profComStatus);
-    });
-    return [...disponiveis, ...indisponiveis];
-};
-
-const getMateriasParaProfessor = (professorId, tipo, slotType) => {
-    if (!professorId) return [];
-    const professor = props.professores.find(p => p.id === professorId);
-    if (!professor) return [];
-    
-    const materiasDoProfessor = professor.materias.map(m => m.id);
-    const listaBase = tipo === 'Flex' ? materiasFlex.value : materiasCore.value;
-
-    return listaBase.filter(m => 
-        materiasDoProfessor.includes(m.id) &&
-        (slotType === 'Ambos (Core)' || m.curso === slotType || m.curso === 'Ambos')
-    );
-};
-
-const getProfessoresParaUCD = (materiaId) => {
-    if (!materiaId) return props.professores;
-    return props.professores.filter(prof => 
-        prof.materias.some(m => m.id === materiaId)
-    );
-};
-
 const checkForConflict = (aula, celula, slotId) => {
     const key = `${celula.dia_semana}-${celula.horario_bloco}-${slotId}`;
     if (!aula.professor_id) {
@@ -131,11 +153,12 @@ const checkForConflict = (aula, celula, slotId) => {
     const conflict = props.existingHorarios.find(h => 
         h.dia_semana === celula.dia_semana &&
         h.horario_bloco === celula.horario_bloco &&
-        h.professor_id === aula.professor_id
+        h.professor_id === aula.professor_id &&
+        h.id !== slotId
     );
 
     if (conflict) {
-        conflictWarnings.value[key] = `Conflito: Prof. já alocado na grade "${conflict.grade.nome}".`;
+        conflictWarnings.value[key] = `Conflito: Prof. já alocado.`;
     } else {
         delete conflictWarnings.value[key];
     }
@@ -144,13 +167,15 @@ const checkForConflict = (aula, celula, slotId) => {
 // --- Funções de Manipulação da Grade ---
 const addSlot = (celula) => {
     if (celula.slots.length < 2) {
+        const newId = Date.now() + Math.random();
         celula.slots.push({
-            id: Date.now(),
+            id: newId,
             type: null,
             confirmed: false,
             aula: { professor_id: '', materia_id: '', sala: '', classroom_code: '' },
             flex_aulas: [],
         });
+        editingSlots.value.add(newId);
     }
 };
 
@@ -161,7 +186,6 @@ const confirmSlot = (slot) => {
     if (slot.aula.materia_id && slot.aula.professor_id && slot.aula.sala) {
         slot.confirmed = true;
         editingSlots.value.delete(slot.id);
-        // Guardar nomes para exibição
         materiaNames.value[slot.id] = props.materias_presenciais.find(m => m.id == slot.aula.materia_id)?.nome || '';
         professorNames.value[slot.id] = props.professores.find(p => p.id == slot.aula.professor_id)?.nome || '';
         salaInfo.value[slot.id] = props.salas.find(s => s.nome === slot.aula.sala) || { nome: slot.aula.sala };
@@ -181,7 +205,6 @@ const removeUcd = (index) => gradeUcd.value.splice(index, 1);
 
 // --- Submissão do Formulário ---
 const submit = () => {
-    // Validar dados obrigatórios
     if (!form.nome || form.nome.trim() === '') {
         alert('Preencha o Nome da Grade!');
         return;
@@ -254,19 +277,23 @@ const submit = () => {
         total_horarios: horariosPreenchidos.length,
     });
     
-    form.post(route('grades.store'), {
+    form.put(route('grades.update', props.grade.id), {
         onError: (errors) => {
-            console.error('Erros ao salvar grade:', errors);
+            console.error('Erros ao atualizar grade:', errors);
         },
     });
 };
+
+onMounted(() => {
+    loadExistingGrade();
+});
 </script>
 
 <template>
-    <Head title="Criar Nova Grade" />
+    <Head :title="`Editar Grade: ${grade.nome}`" />
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Criar Nova Grade de Horários</h2>
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Editar Grade de Horários: {{ grade.nome }}</h2>
         </template>
 
         <div class="py-12">
@@ -465,7 +492,7 @@ const submit = () => {
                                             <InputLabel :for="'ucd_prof_'+index" class="text-xs mb-1">Professor</InputLabel>
                                             <select :id="'ucd_prof_'+index" v-model="ucd.professor_id" :disabled="!ucd.materia_id" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-xs disabled:bg-gray-100">
                                                 <option value="" disabled>Selecione o Professor</option>
-                                                <option v-for="professor in getProfessoresParaUCD(ucd.materia_id)" :key="professor.id" :value="professor.id">{{ professor.nome }}</option>
+                                                <option v-for="professor in props.professores.filter(p => p.materias.some(m => m.id === ucd.materia_id))" :key="professor.id" :value="professor.id">{{ professor.nome }}</option>
                                             </select>
                                         </div>
                                         
@@ -494,7 +521,7 @@ const submit = () => {
                                 <Link :href="route('grades.index')" class="inline-flex items-center px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-md font-semibold text-xs text-gray-800 dark:text-gray-300 uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-neutral-700 dark:hover:border-neutral-700 focus:outline-none">
                                     Cancelar
                                 </Link>
-                                <PrimaryButton :disabled="form.processing || !canSubmit">Salvar Nova Grade</PrimaryButton>
+                                <PrimaryButton :disabled="form.processing || !canSubmit">Salvar Alterações</PrimaryButton>
                             </div>
                         </form>
                     </div>

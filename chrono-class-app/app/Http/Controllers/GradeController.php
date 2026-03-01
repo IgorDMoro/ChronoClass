@@ -57,20 +57,28 @@ class GradeController extends Controller
             'horarios' => 'present|array',
         ]);
 
-        DB::transaction(function () use ($validated) {
-            $grade = Grade::create([
-                'nome' => $validated['nome'],
-                'description' => $validated['description'],
-                'semestre' => $validated['semestre'],
-                'curso' => $validated['curso'],
-            ]);
+        try {
+            DB::transaction(function () use ($validated) {
+                $grade = Grade::create([
+                    'nome' => $validated['nome'],
+                    'description' => $validated['description'],
+                    'semestre' => $validated['semestre'],
+                    'curso' => $validated['curso'],
+                ]);
 
-            foreach ($validated['horarios'] as $horarioData) {
-                $grade->horarios()->create($horarioData);
-            }
-        });
+                // Criar horários com grade_id
+                foreach ($validated['horarios'] as $horarioData) {
+                    $horarioData['grade_id'] = $grade->id;
+                    Horario::create($horarioData);
+                }
+            });
 
-        return redirect()->route('grades.index')->with('success', 'Grade criada com sucesso!');
+            return redirect()->route('grades.index')->with('success', 'Grade criada com sucesso!');
+        } catch (\Exception $e) {
+            \Log::error('Erro ao criar grade: ' . $e->getMessage());
+            \Log::error('Dados recebidos: ' . json_encode($validated));
+            return back()->withInput()->withErrors(['error' => 'Erro ao criar grade: ' . $e->getMessage()]);
+        }
     }
 
     public function show(Grade $grade)
@@ -83,12 +91,57 @@ class GradeController extends Controller
 
     public function edit(Grade $grade)
     {
-        // Implementar a edição se necessário
+        $materias_presenciais = Materia::all();
+        $professores = Professor::all();
+        $salas = Sala::all();
+        
+        // Carrega os horários relacionados
+        $existingHorarios = $grade->horarios()->get();
+
+        return inertia('Grades/Edit', [
+            'grade' => $grade,
+            'existingHorarios' => $existingHorarios,
+            'materias_presenciais' => $materias_presenciais,
+            'professores' => $professores,
+            'salas' => $salas,
+        ]);
     }
 
     public function update(Request $request, Grade $grade)
     {
-        // Implementar a atualização se necessário
+        $validated = $request->validate([
+            'nome' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'semestre' => 'required|string|max:255',
+            'curso' => 'required|array|min:1',
+            'horarios' => 'present|array',
+        ]);
+
+        try {
+            DB::transaction(function () use ($validated, $grade) {
+                $grade->update([
+                    'nome' => $validated['nome'],
+                    'description' => $validated['description'],
+                    'semestre' => $validated['semestre'],
+                    'curso' => $validated['curso'],
+                ]);
+
+                // Remove horários antigos
+                $grade->horarios()->delete();
+
+                // Cria novos horários
+                foreach ($validated['horarios'] as $horarioData) {
+                    $horarioData['grade_id'] = $grade->id;
+                    Horario::create($horarioData);
+                }
+            });
+
+            return redirect()->route('grades.index')->with('success', 'Grade atualizada com sucesso!');
+        } catch (\Exception $e) {
+            \Log::error('Erro ao atualizar grade: ' . $e->getMessage());
+            \Log::error('Dados recebidos: ' . json_encode($validated));
+            return back()->withInput()->withErrors(['error' => 'Erro ao atualizar grade: ' . $e->getMessage()]);
+        }
     }
 
     public function destroy(Grade $grade)

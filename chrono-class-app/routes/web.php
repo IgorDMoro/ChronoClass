@@ -95,6 +95,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/grades', [GradeController::class, 'store'])->name('grades.store');
     Route::get('/grades/{grade}', [GradeController::class, 'show'])->name('grades.show');
     Route::get('/grades/{grade}/edit', [GradeController::class, 'edit'])->name('grades.edit');
+    Route::post('/grades/{grade}/update-post', [GradeController::class, 'update'])->name('grades.update-post');
     Route::post('/grades/{grade}', [GradeController::class, 'destroy'])->name('grades.destroy');
     Route::post('/grades/{grade}/pin', [GradeController::class, 'pin'])->name('grades.pin');
 });
