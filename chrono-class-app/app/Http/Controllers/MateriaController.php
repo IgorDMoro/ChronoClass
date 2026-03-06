@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Materia;
-use App\Models\GrupoMateria;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
@@ -18,7 +17,7 @@ class MateriaController extends Controller
     public function index()
     {
         return Inertia::render('Materias/Index', [
-            'materias' => Materia::with('grupo')->paginate(10)
+            'materias' => Materia::paginate(10)
         ]);
     }
 
@@ -27,9 +26,7 @@ class MateriaController extends Controller
      */
     public function create()
     {
-        return Inertia::render('Materias/Create', [
-            'grupos' => GrupoMateria::all(),
-        ]);
+        return Inertia::render('Materias/Create');
     }
 
     /**
@@ -44,7 +41,6 @@ class MateriaController extends Controller
             'modalidade' => ['required', 'string', Rule::in(['Presencial', 'UCD'])],
             'comp_tipo' => ['required', 'string', Rule::in(['Core', 'Flex'])],
             'ensw_tipo' => ['required', 'string', Rule::in(['Core', 'Flex'])],
-            'grupo_id' => 'nullable|exists:grupos_materias,id',
         ]);
 
         Materia::create($validated);
@@ -70,7 +66,6 @@ class MateriaController extends Controller
     {
         return Inertia::render('Materias/Edit', [
             'materia' => $materia,
-            'grupos' => GrupoMateria::all(),
         ]);
     }
 
@@ -86,7 +81,6 @@ class MateriaController extends Controller
             'modalidade' => ['required', 'string', Rule::in(['Presencial', 'UCD'])],
             'comp_tipo' => ['required', 'string', Rule::in(['Core', 'Flex'])],
             'ensw_tipo' => ['required', 'string', Rule::in(['Core', 'Flex'])],
-            'grupo_id' => 'nullable|exists:grupos_materias,id',
         ]);
 
         $materia->update($validated);

@@ -8,13 +8,8 @@ class Grade extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'nome',
-        'description',
-        'semestre',
-        'curso',
-        'pinned_at',
-    ];
+    protected $fillable = ['turma_id', 'nome', 'curso', 'pinned_at'];
+
 
     protected $casts = [
         'curso' => 'array',
@@ -23,5 +18,10 @@ class Grade extends Model
     public function horarios()
     {
         return $this->hasMany(Horario::class);
+    }
+
+    public function turma()
+    {
+        return $this->belongsTo(Turma::class);
     }
 }

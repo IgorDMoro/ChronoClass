@@ -64,7 +64,6 @@ onMounted(() => {
                 <NavLink :href="route('salas.index')" :active="route().current('salas.index')"> Salas </NavLink>
                 <NavLink :href="route('professores.index')" :active="route().current('professores.index')"> Professores </NavLink>
                 <NavLink :href="route('materias.index')" :active="route().current('materias.index')"> Unidades Curriculares </NavLink>
-                <NavLink :href="route('grupos_materias.index')" :active="route().current('grupos_materias.index')"> Grupos de Matérias </NavLink>
                 <NavLink :href="route('grades.index')" :active="route().current('grades.index')"> Grades </NavLink>
                 <NavLink :href="route('turmas.index')" :active="route().current('turmas.index')"> Turmas </NavLink>
               </div>
@@ -120,7 +119,6 @@ onMounted(() => {
             <ResponsiveNavLink :href="route('salas.index')" :active="route().current('salas.index')"> Salas </ResponsiveNavLink>
             <ResponsiveNavLink :href="route('professores.index')" :active="route().current('professores.index')"> Professores </ResponsiveNavLink>
             <ResponsiveNavLink :href="route('materias.index')" :active="route().current('materias.index')"> Unidades Curriculares </ResponsiveNavLink>
-            <ResponsiveNavLink :href="route('grupos_materias.index')" :active="route().current('grupos_materias.index')"> Grupos de Matérias </ResponsiveNavLink>
             <ResponsiveNavLink :href="route('grades.index')" :active="route().current('grades.index')"> Grades </ResponsiveNavLink>
             <ResponsiveNavLink :href="route('turmas.index')" :active="route().current('turmas.index')"> Turmas </ResponsiveNavLink>
           </div>

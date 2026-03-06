@@ -5,24 +5,35 @@ import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { Head, useForm, Link } from '@inertiajs/vue3';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 
 const props = defineProps({
-    grupos: Array,
     materias_presenciais: Array,
     materias_ucd: Array,
     professores: Array,
     existingHorarios: Array,
-    salas: Array, // <-- 1. CORREÇÃO: Prop de salas adicionada
+    salas: Array,
+    turmas: Array,
 });
 
 // --- Estado do Componente ---
 const form = useForm({
-    nome: '',
-    description: '',
+    turma_id: '',
     curso: [],
-    semestre: '',
     horarios: [],
+});
+
+const cursoOptions = ['Engenharia de Software', 'Ciências da Computação'];
+
+// Quando selecionar uma turma, pré-preenche os cursos se a turma já tiver curso definido
+watch(() => form.turma_id, (newId) => {
+    const turma = props.turmas.find(t => t.id == newId);
+    if (turma?.curso) {
+        // Se a turma tiver curso definido, pré-seleciona; caso contrário limpa
+        form.curso = Array.isArray(turma.curso) ? turma.curso : [turma.curso];
+    } else {
+        form.curso = [];
+    }
 });
 
 const showSabado = ref(false);
@@ -38,7 +49,6 @@ const salaInfo = ref({});
 const diasDaSemana = ['SEGUNDA', 'TERÇA', 'QUARTA', 'QUINTA', 'SEXTA'];
 const horariosBlocos = ['19:00-20:30', '20:45-22:15'];
 const horarioSabado = '08:00-12:00';
-const cursoOptions = ['Engenharia de Software', 'Ciências da Computação'];
 
 // --- Estrutura de Dados Visual ---
 const gradeVisual = ref(diasDaSemana.reduce((acc, dia) => {
@@ -49,7 +59,7 @@ const gradeVisual = ref(diasDaSemana.reduce((acc, dia) => {
             id: Date.now() + Math.random(),
             type: null,
             confirmed: false,
-            aula: { professor_id: '', materia_id: '', sala: '', classroom_code: '' }, 
+            aula: { professor_id: '', materia_id: '', sala: '', classroom_code: '' },
             flex_aulas: [],
         }],
     }));
@@ -63,22 +73,21 @@ const gradeUcd = ref([]);
 const materiasCore = computed(() => props.materias_presenciais);
 const materiasFlex = computed(() => props.materias_presenciais);
 
-const canSubmit = computed(() => {
-    return form.nome && form.semestre && form.curso.length > 0;
+const canSubmit = computed(() => form.turma_id && form.curso.length > 0);
+
+const selectedTurmaLabel = computed(() => {
+    if (!form.turma_id) return null;
+    const t = props.turmas.find(t => t.id == form.turma_id);
+    return t ? `${t.nome} — ${t.semestre}` : null;
 });
 
-/**
- * Fetch professors for a selected materia from the backend API
- */
 const getProfessoresParaMateria = async (materiaId, slotId) => {
     if (!materiaId) {
         filteredProfessores.value[slotId] = [];
         return;
     }
-
     const key = `slot-${slotId}`;
     loadingProfessores.value[key] = true;
-
     try {
         const response = await fetch(`/grades/api/professores-por-materia/${materiaId}`);
         const data = await response.json();
@@ -91,49 +100,17 @@ const getProfessoresParaMateria = async (materiaId, slotId) => {
     }
 };
 
-const getProfessoresFiltrados = (diaKey, horario) => {
-    const disponiveis = [], indisponiveis = [];
-    props.professores.forEach(prof => {
-        const temDisponibilidade = prof.disponibilidade?.[diaKey]?.includes(horario);
-        const profComStatus = { ...prof, disponivel: !!temDisponibilidade };
-        temDisponibilidade ? disponiveis.push(profComStatus) : indisponiveis.push(profComStatus);
-    });
-    return [...disponiveis, ...indisponiveis];
-};
-
-const getMateriasParaProfessor = (professorId, tipo, slotType) => {
-    if (!professorId) return [];
-    const professor = props.professores.find(p => p.id === professorId);
-    if (!professor) return [];
-    
-    const materiasDoProfessor = professor.materias.map(m => m.id);
-    const listaBase = tipo === 'Flex' ? materiasFlex.value : materiasCore.value;
-
-    return listaBase.filter(m => 
-        materiasDoProfessor.includes(m.id) &&
-        (slotType === 'Ambos (Core)' || m.curso === slotType || m.curso === 'Ambos')
-    );
-};
-
-const getProfessoresParaUCD = (materiaId) => {
-    if (!materiaId) return props.professores;
-    return props.professores.filter(prof => 
-        prof.materias.some(m => m.id === materiaId)
-    );
-};
-
 const checkForConflict = (aula, celula, slotId) => {
     const key = `${celula.dia_semana}-${celula.horario_bloco}-${slotId}`;
     if (!aula.professor_id) {
         delete conflictWarnings.value[key];
         return;
     }
-    const conflict = props.existingHorarios.find(h => 
+    const conflict = props.existingHorarios.find(h =>
         h.dia_semana === celula.dia_semana &&
         h.horario_bloco === celula.horario_bloco &&
         h.professor_id === aula.professor_id
     );
-
     if (conflict) {
         conflictWarnings.value[key] = `Conflito: Prof. já alocado na grade "${conflict.grade.nome}".`;
     } else {
@@ -161,7 +138,6 @@ const confirmSlot = (slot) => {
     if (slot.aula.materia_id && slot.aula.professor_id && slot.aula.sala) {
         slot.confirmed = true;
         editingSlots.value.delete(slot.id);
-        // Guardar nomes para exibição
         materiaNames.value[slot.id] = props.materias_presenciais.find(m => m.id == slot.aula.materia_id)?.nome || '';
         professorNames.value[slot.id] = props.professores.find(p => p.id == slot.aula.professor_id)?.nome || '';
         salaInfo.value[slot.id] = props.salas.find(s => s.nome === slot.aula.sala) || { nome: slot.aula.sala };
@@ -181,21 +157,12 @@ const removeUcd = (index) => gradeUcd.value.splice(index, 1);
 
 // --- Submissão do Formulário ---
 const submit = () => {
-    // Validar dados obrigatórios
-    if (!form.nome || form.nome.trim() === '') {
-        alert('Preencha o Nome da Grade!');
+    if (!form.turma_id) {
+        alert('Selecione uma Turma!');
         return;
     }
-    
-    if (!form.semestre || form.semestre.trim() === '') {
-        alert('Preencha o Semestre!');
-        return;
-    }
-    
-    // Garantir que curso é um array
-    const cursoArray = Array.isArray(form.curso) ? form.curso : [];
-    if (cursoArray.length === 0) {
-        alert('Selecione pelo menos um curso!');
+    if (form.curso.length === 0) {
+        alert('Selecione pelo menos um Curso!');
         return;
     }
 
@@ -204,9 +171,7 @@ const submit = () => {
         diaDeAulas.forEach(celula => {
             const { slots, ...celulaBase } = celula;
             celula.slots.forEach(slot => {
-                // Apenas coletar slots que foram confirmados
                 if (!slot.confirmed) return;
-                
                 const aulaBase = {
                     dia_semana: celulaBase.dia_semana,
                     horario_bloco: celulaBase.horario_bloco,
@@ -235,25 +200,14 @@ const submit = () => {
             if (aula.materia_id && aula.professor_id) horariosPreenchidos.push(aula);
         });
     }
-    
-    // Validar que pelo menos 1 horário foi confirmado
+
     if (horariosPreenchidos.length === 0) {
         alert('Confirme pelo menos 1 aula antes de salvar!');
         return;
     }
-    
-    // Preparar dados para envio
+
     form.horarios = horariosPreenchidos;
-    
-    console.log('Enviando para backend:', {
-        nome: form.nome,
-        description: form.description,
-        semestre: form.semestre,
-        curso: cursoArray,
-        horarios: horariosPreenchidos,
-        total_horarios: horariosPreenchidos.length,
-    });
-    
+
     form.post(route('grades.store'), {
         onError: (errors) => {
             console.error('Erros ao salvar grade:', errors);
@@ -265,80 +219,123 @@ const submit = () => {
 <template>
     <Head title="Criar Nova Grade" />
     <AuthenticatedLayout>
-        <template #header>
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Criar Nova Grade de Horários</h2>
-        </template>
-
         <div class="py-12">
             <div class="max-w-full mx-auto sm:px-6 lg:px-8">
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6 text-gray-900">
+                <div class="bg-white dark:bg-zinc-800 overflow-hidden shadow-lg dark:shadow-2xl dark:shadow-black/25 sm:rounded-lg ring-1 ring-gray-200 dark:ring-inset dark:ring-orange-500/20">
+                    <div class="p-6 sm:p-8 text-gray-900 dark:text-gray-200">
+                        <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-8">Criar Nova Grade de Horários</h2>
+
                         <form @submit.prevent="submit">
-                            <div class="p-6 border rounded-lg mb-8 bg-gray-50">
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-                                    <div class="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
-                                        <TextInput v-model="form.nome" placeholder="Nome da Grade *" class="md:col-span-2" required />
-                                        <TextInput v-model="form.semestre" placeholder="Semestre (Ex: 2025/1) *" required />
+                            <!-- Cabeçalho da Grade: Turma + Curso -->
+                            <div class="p-6 border rounded-lg mb-8 bg-gray-50 dark:bg-neutral-900 border-gray-200 dark:border-neutral-700">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+
+                                    <!-- Seleção de Turma -->
+                                    <div>
+                                        <InputLabel for="turma" class="text-gray-700 dark:text-gray-300 font-semibold mb-1">
+                                            Turma <span class="text-red-500">*</span>
+                                        </InputLabel>
+                                        <select
+                                            id="turma"
+                                            v-model="form.turma_id"
+                                            class="mt-1 w-full rounded-md border-gray-300 dark:border-gray-300/40 dark:bg-neutral-800 dark:text-gray-200 shadow-sm focus:ring-orange-500 focus:border-orange-500"
+                                            required
+                                        >
+                                            <option value="" disabled>Selecione uma Turma</option>
+                                            <option v-for="turma in props.turmas" :key="turma.id" :value="turma.id">
+                                                {{ turma.nome }} — {{ turma.semestre }}
+                                            </option>
+                                        </select>
+                                        <InputError class="mt-1" :message="form.errors.turma_id" />
+
+                                        <!-- Preview do nome que será gerado -->
+                                        <p v-if="selectedTurmaLabel" class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                            Nome da grade: <span class="font-semibold text-orange-600 dark:text-orange-400">{{ selectedTurmaLabel }}</span>
+                                        </p>
                                     </div>
-                                    <div class="md:col-span-2">
-                                        <InputLabel>Curso(s) <span class="text-red-500">*</span></InputLabel>
-                                        <div class="mt-2 flex flex-wrap gap-4">
-                                            <label v-for="option in cursoOptions" :key="option" class="flex items-center">
-                                                <input type="checkbox" v-model="form.curso" :value="option" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
-                                                <span class="ml-2 text-sm">{{ option }}</span>
+
+                                    <!-- Seleção de Curso(s) -->
+                                    <div>
+                                        <InputLabel class="text-gray-700 dark:text-gray-300 font-semibold mb-1">
+                                            Curso(s) <span class="text-red-500">*</span>
+                                        </InputLabel>
+                                        <div class="mt-2 space-y-2">
+                                            <label
+                                                v-for="option in cursoOptions"
+                                                :key="option"
+                                                class="flex items-center gap-3 cursor-pointer"
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    v-model="form.curso"
+                                                    :value="option"
+                                                    class="rounded border-gray-300 dark:border-gray-500 text-orange-600 shadow-sm focus:ring-orange-500 dark:bg-neutral-700 w-4 h-4"
+                                                />
+                                                <span class="text-sm text-gray-800 dark:text-gray-200">{{ option }}</span>
                                             </label>
                                         </div>
-                                        <InputError class="mt-2" :message="form.errors.curso" />
-                                    </div>
-                                    <div class="md:col-span-1">
-                                        <InputLabel for="grade_description">Descrição (Opcional)</InputLabel>
-                                        <TextInput id="grade_description" type="text" v-model="form.description" class="mt-1 block w-full" />
+                                        <InputError class="mt-1" :message="form.errors.curso" />
+                                        <!-- Badge visual dos cursos selecionados -->
+                                        <div v-if="form.curso.length > 0" class="mt-3 flex flex-wrap gap-2">
+                                            <span
+                                                v-for="c in form.curso"
+                                                :key="c"
+                                                class="px-2.5 py-1 text-xs font-semibold rounded-full"
+                                                :class="c.includes('Engenharia') ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300' : 'bg-green-100 dark:bg-green-500/20 text-green-800 dark:text-green-300'"
+                                            >
+                                                {{ c.includes('Engenharia') ? 'Eng. Software' : 'C. Computação' }}
+                                            </span>
+                                            <span v-if="form.curso.length === 2" class="px-2.5 py-1 text-xs font-semibold rounded-full bg-orange-100 dark:bg-orange-500/20 text-orange-800 dark:text-orange-300">
+                                                Turma Mista
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
+                            <!-- Grade de Horários -->
                             <div class="overflow-x-auto">
                                 <table class="w-full table-fixed border-collapse text-xs">
-                                    <thead class="bg-gray-100">
+                                    <thead class="bg-gray-100 dark:bg-neutral-800">
                                         <tr>
-                                            <th class="border p-2 font-semibold text-gray-600 w-[10%]">Horário</th>
-                                            <th v-for="dia in diasDaSemana" :key="dia" class="border p-2 font-semibold text-gray-600 uppercase w-[18%]">{{ dia }}</th>
+                                            <th class="border border-gray-300 dark:border-neutral-700 p-2 font-semibold text-gray-600 dark:text-gray-300 w-[10%]">Horário</th>
+                                            <th v-for="dia in diasDaSemana" :key="dia" class="border border-gray-300 dark:border-neutral-700 p-2 font-semibold text-gray-600 dark:text-gray-300 uppercase w-[18%]">{{ dia }}</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="bg-white">
+                                    <tbody class="bg-white dark:bg-zinc-900">
                                         <tr v-for="(bloco, hIndex) in horariosBlocos" :key="hIndex">
-                                            <td class="border p-2 font-semibold text-gray-700 bg-gray-50 text-center align-middle">{{ bloco.replace('-', ' - ') }}</td>
-                                            <td v-for="dia in diasDaSemana" :key="dia + hIndex" class="border p-1 align-top overflow-hidden">
+                                            <td class="border border-gray-300 dark:border-neutral-700 p-2 font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 text-center align-middle">{{ bloco.replace('-', ' - ') }}</td>
+                                            <td v-for="dia in diasDaSemana" :key="dia + hIndex" class="border border-gray-300 dark:border-neutral-700 p-1 align-top overflow-hidden">
                                                 <div class="space-y-2 h-full flex flex-col min-w-0">
-                                                    <div v-for="(slot, sIndex) in gradeVisual[dia][hIndex].slots" :key="slot.id" class="bg-gray-50 p-1.5 rounded-md border relative flex-1 flex flex-col min-w-0">
-                                                        <button @click="removeSlot(gradeVisual[dia][hIndex], sIndex)" type="button" class="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full h-4 w-4 text-xs flex items-center justify-center font-bold">&times;</button>
-                                                        
+                                                    <div v-for="(slot, sIndex) in gradeVisual[dia][hIndex].slots" :key="slot.id" class="bg-gray-50 dark:bg-neutral-800 p-1.5 rounded-md border border-gray-200 dark:border-neutral-700 relative flex-1 flex flex-col min-w-0">
+                                                        <button @click="removeSlot(gradeVisual[dia][hIndex], sIndex)" type="button" class="absolute -top-1.5 -right-1.5 bg-red-500 dark:bg-red-600 text-white rounded-full h-4 w-4 text-xs flex items-center justify-center font-bold">&times;</button>
+
                                                         <!-- MODO VISUALIZAÇÃO (Confirmado) -->
                                                         <div v-if="slot.confirmed" class="space-y-2 h-full flex flex-col">
-                                                            <div class="bg-white rounded-lg border border-gray-200 p-3 flex-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+                                                            <div class="bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-700 p-3 flex-1 flex flex-col justify-between shadow-sm hover:shadow-md dark:hover:shadow-lg dark:hover:shadow-black/20 transition-shadow">
                                                                 <div class="space-y-2">
                                                                     <div class="flex justify-between items-start gap-2">
                                                                         <div class="flex-1">
-                                                                            <p class="text-[11px] font-semibold text-gray-500 uppercase">Matéria</p>
-                                                                            <p class="text-sm font-bold text-gray-800">{{ materiaNames[slot.id] }}</p>
+                                                                            <p class="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Matéria</p>
+                                                                            <p class="text-sm font-bold text-gray-800 dark:text-gray-200">{{ materiaNames[slot.id] }}</p>
                                                                         </div>
-                                                                        <button @click="editSlot(slot)" type="button" class="p-1.5 rounded hover:bg-gray-100 transition-colors" title="Editar">
-                                                                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <button @click="editSlot(slot)" type="button" class="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors" title="Editar">
+                                                                            <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                                                             </svg>
                                                                         </button>
                                                                     </div>
                                                                     <div>
-                                                                        <p class="text-[11px] font-semibold text-gray-500 uppercase">Professor</p>
-                                                                        <p class="text-sm font-medium text-gray-700">{{ professorNames[slot.id] }}</p>
+                                                                        <p class="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Professor</p>
+                                                                        <p class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ professorNames[slot.id] }}</p>
                                                                     </div>
                                                                     <div>
-                                                                        <p class="text-[11px] font-semibold text-gray-500 uppercase">Sala</p>
-                                                                        <p class="text-sm font-medium text-gray-700">{{ salaInfo[slot.id]?.nome }}</p>
+                                                                        <p class="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Sala</p>
+                                                                        <p class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ salaInfo[slot.id]?.nome }}</p>
                                                                     </div>
-                                                                    <div v-if="slot.aula.classroom_code" class="pt-2 border-t">
-                                                                        <p class="text-[11px] font-semibold text-gray-500 uppercase">Classroom</p>
-                                                                        <p class="text-sm font-mono text-blue-600">{{ slot.aula.classroom_code }}</p>
+                                                                    <div v-if="slot.aula.classroom_code" class="pt-2 border-t border-gray-200 dark:border-neutral-700">
+                                                                        <p class="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Classroom</p>
+                                                                        <p class="text-sm font-mono text-blue-600 dark:text-blue-400">{{ slot.aula.classroom_code }}</p>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -347,80 +344,67 @@ const submit = () => {
                                                         <!-- MODO EDIÇÃO -->
                                                         <div v-else class="space-y-1.5">
                                                             <div v-if="!slot.type" class="flex flex-col items-center justify-center gap-1 py-1 h-full min-h-[6rem]">
-                                                                <span class="text-xs font-medium text-gray-500">Tipo de aula:</span>
+                                                                <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Tipo de aula:</span>
                                                                 <div class="flex gap-1 flex-wrap justify-center">
-                                                                    <button @click="setSlotType(slot, 'Engenharia de Software')" type="button" class="px-1.5 py-0.5 text-[10px] bg-blue-100 text-blue-800 rounded">Eng. SW</button>
-                                                                    <button @click="setSlotType(slot, 'Ciências da Computação')" type="button" class="px-1.5 py-0.5 text-[10px] bg-green-100 text-green-800 rounded">C. Comp</button>
-                                                                    <button @click="setSlotType(slot, 'Ambos (Core)')" type="button" class="px-1.5 py-0.5 text-[10px] bg-indigo-100 text-indigo-800 rounded">Ambos</button>
-                                                                    <button @click="setSlotType(slot, 'Flex')" type="button" class="px-1.5 py-0.5 text-[10px] bg-yellow-100 text-yellow-800 rounded">Flex</button>
+                                                                    <button @click="setSlotType(slot, 'Engenharia de Software')" type="button" class="px-1.5 py-0.5 text-[10px] bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-400 rounded">Eng. SW</button>
+                                                                    <button @click="setSlotType(slot, 'Ciências da Computação')" type="button" class="px-1.5 py-0.5 text-[10px] bg-green-100 dark:bg-green-500/20 text-green-800 dark:text-green-400 rounded">C. Comp</button>
+                                                                    <button @click="setSlotType(slot, 'Ambos (Core)')" type="button" class="px-1.5 py-0.5 text-[10px] bg-orange-100 dark:bg-orange-500/20 text-orange-800 dark:text-orange-400 rounded">Ambos</button>
+                                                                    <button @click="setSlotType(slot, 'Flex')" type="button" class="px-1.5 py-0.5 text-[10px] bg-yellow-100 dark:bg-yellow-500/20 text-yellow-800 dark:text-yellow-400 rounded">Flex</button>
                                                                 </div>
                                                             </div>
 
                                                             <div v-if="slot.type && slot.type !== 'Flex'" class="space-y-1.5 min-w-0">
-                                                                <p class="text-[11px] font-bold text-center" :class="{'text-blue-800': slot.type.includes('Engenharia'), 'text-green-800': slot.type.includes('Ciências'), 'text-indigo-800': slot.type.includes('Ambos')}">{{ slot.type }}</p>
-                                                                <select v-model="slot.aula.materia_id" @change="getProfessoresParaMateria(slot.aula.materia_id, slot.id)" class="w-full rounded-md border-gray-300 text-xs px-2 py-1">
+                                                                <p class="text-[11px] font-bold text-center" :class="{'text-blue-800 dark:text-blue-400': slot.type.includes('Engenharia'), 'text-green-800 dark:text-green-400': slot.type.includes('Ciências'), 'text-orange-800 dark:text-orange-400': slot.type.includes('Ambos')}">{{ slot.type }}</p>
+                                                                <select v-model="slot.aula.materia_id" @change="getProfessoresParaMateria(slot.aula.materia_id, slot.id)" class="w-full rounded-md border-gray-300 dark:border-gray-300/40 dark:bg-neutral-700 dark:text-gray-200 text-xs px-2 py-1">
                                                                     <option value="" disabled>Matéria</option>
                                                                     <option v-for="materia in materiasCore" :key="materia.id" :value="materia.id">{{ materia.nome }}</option>
                                                                 </select>
-                                                                <div v-if="loadingProfessores[`slot-${slot.id}`]" class="text-[10px] text-gray-500 italic">Carregando professores...</div>
-                                                                <select v-model="slot.aula.professor_id" @change="checkForConflict(slot.aula, gradeVisual[dia][hIndex], slot.id)" :disabled="!slot.aula.materia_id || loadingProfessores[`slot-${slot.id}`]" class="w-full rounded-md border-gray-300 text-xs px-2 py-1 disabled:bg-gray-100">
+                                                                <div v-if="loadingProfessores[`slot-${slot.id}`]" class="text-[10px] text-gray-500 dark:text-gray-400 italic">Carregando professores...</div>
+                                                                <select v-model="slot.aula.professor_id" @change="checkForConflict(slot.aula, gradeVisual[dia][hIndex], slot.id)" :disabled="!slot.aula.materia_id || loadingProfessores[`slot-${slot.id}`]" class="w-full rounded-md border-gray-300 dark:border-gray-300/40 dark:bg-neutral-700 dark:text-gray-200 text-xs px-2 py-1 disabled:bg-gray-100 dark:disabled:bg-neutral-800">
                                                                     <option value="" disabled>Professor</option>
                                                                     <option v-for="prof in (filteredProfessores[slot.id] || [])" :key="prof.id" :value="prof.id">{{ prof.nome }}</option>
                                                                 </select>
-                                                                
-                                                                <select v-model="slot.aula.sala" class="w-full rounded-md border-gray-300 text-xs px-2 py-1">
+                                                                <select v-model="slot.aula.sala" class="w-full rounded-md border-gray-300 dark:border-gray-300/40 dark:bg-neutral-700 dark:text-gray-200 text-xs px-2 py-1">
                                                                     <option value="" disabled>Sala</option>
-                                                                    <option v-for="sala in props.salas" :key="sala.id" :value="sala.nome">
-                                                                        {{ sala.nome }} (Cap: {{ sala.capacidade }})
-                                                                    </option>
+                                                                    <option v-for="sala in props.salas" :key="sala.id" :value="sala.nome">{{ sala.nome }} (Cap: {{ sala.capacidade }})</option>
                                                                 </select>
-
-                                                                <TextInput type="text" v-model="slot.aula.classroom_code" placeholder="Classroom (opcional)" class="text-xs w-full" />
-                                                                <div v-if="conflictWarnings[`${gradeVisual[dia][hIndex].dia_semana}-${gradeVisual[dia][hIndex].horario_bloco}-${slot.id}`]" class="text-[10px] text-orange-600 p-1 bg-orange-100 rounded">
+                                                                <TextInput type="text" v-model="slot.aula.classroom_code" placeholder="Classroom (opcional)" class="text-xs w-full dark:bg-neutral-700 dark:border-gray-300/40 dark:text-gray-200" />
+                                                                <div v-if="conflictWarnings[`${gradeVisual[dia][hIndex].dia_semana}-${gradeVisual[dia][hIndex].horario_bloco}-${slot.id}`]" class="text-[10px] text-orange-600 dark:text-orange-400 p-1 bg-orange-100 dark:bg-orange-500/10 rounded">
                                                                     {{ conflictWarnings[`${gradeVisual[dia][hIndex].dia_semana}-${gradeVisual[dia][hIndex].horario_bloco}-${slot.id}`] }}
                                                                 </div>
-                                                                <button 
-                                                                    @click="confirmSlot(slot)" 
-                                                                    type="button" 
-                                                                    :disabled="!slot.aula.materia_id || !slot.aula.professor_id || !slot.aula.sala"
-                                                                    class="w-full px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white text-xs font-semibold rounded-md transition-colors"
-                                                                >
+                                                                <button @click="confirmSlot(slot)" type="button" :disabled="!slot.aula.materia_id || !slot.aula.professor_id || !slot.aula.sala" class="w-full px-3 py-1.5 bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-xs font-semibold rounded-md transition-colors">
                                                                     ✓ Confirmar
                                                                 </button>
                                                             </div>
 
                                                             <div v-if="slot.type === 'Flex'" class="space-y-1.5">
-                                                                <p class="text-[11px] font-bold text-yellow-800 text-center">Flex</p>
-                                                                <div v-for="(flexAula, fIndex) in slot.flex_aulas" :key="flexAula.id" class="space-y-1.5 border-t pt-1.5">
+                                                                <p class="text-[11px] font-bold text-yellow-800 dark:text-yellow-400 text-center">Flex</p>
+                                                                <div v-for="(flexAula, fIndex) in slot.flex_aulas" :key="flexAula.id" class="space-y-1.5 border-t border-gray-300 dark:border-neutral-700 pt-1.5">
                                                                     <div class="flex gap-1.5 items-start">
                                                                         <div class="flex-1 space-y-1.5">
-                                                                            <select v-model="flexAula.materia_id" @change="getProfessoresParaMateria(flexAula.materia_id, `flex-${slot.id}-${fIndex}`)" class="w-full rounded-md border-gray-300 text-xs px-2 py-1">
+                                                                            <select v-model="flexAula.materia_id" @change="getProfessoresParaMateria(flexAula.materia_id, `flex-${slot.id}-${fIndex}`)" class="w-full rounded-md border-gray-300 dark:border-gray-300/40 dark:bg-neutral-700 dark:text-gray-200 text-xs px-2 py-1">
                                                                                 <option value="" disabled>Matéria</option>
                                                                                 <option v-for="materia in materiasFlex" :key="materia.id" :value="materia.id">{{ materia.nome }}</option>
                                                                             </select>
-                                                                            <div v-if="loadingProfessores[`slot-flex-${slot.id}-${fIndex}`]" class="text-[10px] text-gray-500 italic">Carregando professores...</div>
-                                                                            <select v-model="flexAula.professor_id" :disabled="!flexAula.materia_id || loadingProfessores[`slot-flex-${slot.id}-${fIndex}`]" class="w-full rounded-md border-gray-300 text-xs px-2 py-1 disabled:bg-gray-100">
+                                                                            <div v-if="loadingProfessores[`slot-flex-${slot.id}-${fIndex}`]" class="text-[10px] text-gray-500 dark:text-gray-400 italic">Carregando professores...</div>
+                                                                            <select v-model="flexAula.professor_id" :disabled="!flexAula.materia_id || loadingProfessores[`slot-flex-${slot.id}-${fIndex}`]" class="w-full rounded-md border-gray-300 dark:border-gray-300/40 dark:bg-neutral-700 dark:text-gray-200 text-xs px-2 py-1 disabled:bg-gray-100 dark:disabled:bg-neutral-800">
                                                                                 <option value="" disabled>Professor</option>
                                                                                 <option v-for="prof in (filteredProfessores[`flex-${slot.id}-${fIndex}`] || [])" :key="prof.id" :value="prof.id">{{ prof.nome }}</option>
                                                                             </select>
-                                                                            
-                                                                            <select v-model="flexAula.sala" class="w-full rounded-md border-gray-300 text-xs px-2 py-1">
+                                                                            <select v-model="flexAula.sala" class="w-full rounded-md border-gray-300 dark:border-gray-300/40 dark:bg-neutral-700 dark:text-gray-200 text-xs px-2 py-1">
                                                                                 <option value="" disabled>Sala</option>
-                                                                                <option v-for="sala in props.salas" :key="sala.id" :value="sala.nome">
-                                                                                    {{ sala.nome }} (Cap: {{ sala.capacidade }})
-                                                                                </option>
+                                                                                <option v-for="sala in props.salas" :key="sala.id" :value="sala.nome">{{ sala.nome }} (Cap: {{ sala.capacidade }})</option>
                                                                             </select>
-
-                                                                            <TextInput type="text" v-model="flexAula.classroom_code" placeholder="Classroom" class="text-xs w-full" />
+                                                                            <TextInput type="text" v-model="flexAula.classroom_code" placeholder="Classroom" class="text-xs w-full dark:bg-neutral-700 dark:border-gray-300/40 dark:text-gray-200" />
                                                                         </div>
-                                                                        <button @click="removeFlexAula(slot, fIndex)" type="button" class="text-red-500 font-bold p-0.5 rounded-full hover:bg-red-100 mt-1">&times;</button>
+                                                                        <button @click="removeFlexAula(slot, fIndex)" type="button" class="text-red-500 dark:text-red-400 font-bold p-0.5 rounded-full hover:bg-red-100 dark:hover:bg-red-500/20 mt-1">&times;</button>
                                                                     </div>
                                                                 </div>
-                                                                <button @click="addFlexAula(slot)" type="button" class="w-full text-center text-xs py-1 bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200">+</button>
+                                                                <button @click="addFlexAula(slot)" type="button" class="w-full text-center text-xs py-1 bg-yellow-100 dark:bg-yellow-500/20 text-yellow-800 dark:text-yellow-400 rounded hover:bg-yellow-200 dark:hover:bg-yellow-500/30">+</button>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <button v-if="gradeVisual[dia][hIndex].slots.length < 2" @click="addSlot(gradeVisual[dia][hIndex])" type="button" class="w-full text-center text-xs py-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 mt-auto">+ Adicionar Aula</button>
+                                                    <button v-if="gradeVisual[dia][hIndex].slots.length < 2" @click="addSlot(gradeVisual[dia][hIndex])" type="button" class="w-full text-center text-xs py-1 bg-gray-100 dark:bg-neutral-800 text-gray-600 dark:text-gray-400 rounded hover:bg-gray-200 dark:hover:bg-neutral-700 mt-auto">+ Adicionar Aula</button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -428,73 +412,71 @@ const submit = () => {
                                 </table>
                             </div>
 
-                            <div class="mt-6 flex gap-4">
-                                <button type="button" @click="showSabado = !showSabado" class="px-4 py-2 text-sm font-medium rounded-md transition-colors" :class="showSabado ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'">
+                            <div class="mt-6 flex gap-4 flex-wrap">
+                                <button type="button" @click="showSabado = !showSabado" class="px-4 py-2 text-sm font-medium rounded-md transition-colors" :class="showSabado ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-400' : 'bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-neutral-700'">
                                     {{ showSabado ? 'Ocultar' : 'Adicionar' }} Sábado
                                 </button>
-                                <button type="button" @click="showUcd = !showUcd" class="px-4 py-2 text-sm font-medium rounded-md transition-colors" :class="showUcd ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'">
+                                <button type="button" @click="showUcd = !showUcd" class="px-4 py-2 text-sm font-medium rounded-md transition-colors" :class="showUcd ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-800 dark:text-purple-400' : 'bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-neutral-700'">
                                     {{ showUcd ? 'Ocultar' : 'Adicionar' }} Atividades Digitais
                                 </button>
                             </div>
 
-                            <div v-if="showSabado" class="mt-4 p-4 border rounded-lg bg-blue-50/50">
-                                <InputLabel>Atividade de Sábado ({{ horarioSabado.replace('-', ' - ') }})</InputLabel>
+                            <div v-if="showSabado" class="mt-4 p-4 border border-blue-200 dark:border-blue-500/30 rounded-lg bg-blue-50 dark:bg-blue-500/10">
+                                <InputLabel class="text-gray-700 dark:text-gray-300">Atividade de Sábado ({{ horarioSabado.replace('-', ' - ') }})</InputLabel>
                                 <label class="relative inline-flex items-center cursor-pointer mt-2">
                                     <input type="checkbox" v-model="gradeSabado.estagio" class="sr-only peer">
-                                    <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-300 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                                    <span class="ml-3 text-sm font-medium text-gray-900">Estágio</span>
+                                    <div class="w-11 h-6 bg-gray-200 dark:bg-neutral-700 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border dark:after:border-neutral-700 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 dark:peer-checked:bg-blue-700"></div>
+                                    <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">Estágio</span>
                                 </label>
                             </div>
 
-                            <div v-if="showUcd" class="mt-4 p-4 border rounded-lg bg-purple-50/50">
+                            <div v-if="showUcd" class="mt-4 p-4 border border-purple-200 dark:border-purple-500/30 rounded-lg bg-purple-50 dark:bg-purple-500/10">
                                 <div class="flex justify-between items-center mb-4">
-                                    <h3 class="font-semibold text-gray-800">Atividades Digitais (UCDs)</h3>
-                                    <button @click="addUcd" type="button" class="px-3 py-1 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700">+</button>
+                                    <h3 class="font-semibold text-gray-800 dark:text-gray-300">Atividades Digitais (UCDs)</h3>
+                                    <button @click="addUcd" type="button" class="px-3 py-1 bg-purple-600 dark:bg-purple-700 text-white text-sm font-medium rounded-md hover:bg-purple-700 dark:hover:bg-purple-600">+</button>
                                 </div>
                                 <div class="space-y-4">
-                                    <p v-if="gradeUcd.length === 0" class="text-sm text-gray-500 text-center">Nenhuma atividade digital adicionada.</p>
-                                    <div v-for="(ucd, index) in gradeUcd" :key="index" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center p-3 border rounded-md bg-white">
+                                    <p v-if="gradeUcd.length === 0" class="text-sm text-gray-500 dark:text-gray-400 text-center">Nenhuma atividade digital adicionada.</p>
+                                    <div v-for="(ucd, index) in gradeUcd" :key="index" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center p-3 border border-gray-200 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900">
                                         <div class="md:col-span-4">
-                                            <InputLabel :for="'ucd_materia_'+index" class="text-xs mb-1">Matéria</InputLabel>
-                                            <select :id="'ucd_materia_'+index" v-model="ucd.materia_id" @change="ucd.professor_id = ''" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-xs">
+                                            <InputLabel :for="'ucd_materia_'+index" class="text-xs mb-1 text-gray-700 dark:text-gray-300">Matéria</InputLabel>
+                                            <select :id="'ucd_materia_'+index" v-model="ucd.materia_id" @change="ucd.professor_id = ''" class="block w-full rounded-md border-gray-300 dark:border-gray-300/40 dark:bg-neutral-800 dark:text-gray-200 shadow-sm sm:text-xs">
                                                 <option value="" disabled>Selecione a UCD</option>
                                                 <option v-for="materia in props.materias_ucd" :key="materia.id" :value="materia.id">{{ materia.nome }}</option>
                                             </select>
                                         </div>
                                         <div class="md:col-span-3">
-                                            <InputLabel :for="'ucd_prof_'+index" class="text-xs mb-1">Professor</InputLabel>
-                                            <select :id="'ucd_prof_'+index" v-model="ucd.professor_id" :disabled="!ucd.materia_id" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-xs disabled:bg-gray-100">
+                                            <InputLabel :for="'ucd_prof_'+index" class="text-xs mb-1 text-gray-700 dark:text-gray-300">Professor</InputLabel>
+                                            <select :id="'ucd_prof_'+index" v-model="ucd.professor_id" :disabled="!ucd.materia_id" class="block w-full rounded-md border-gray-300 dark:border-gray-300/40 dark:bg-neutral-800 dark:text-gray-200 shadow-sm sm:text-xs disabled:bg-gray-100 dark:disabled:bg-neutral-800">
                                                 <option value="" disabled>Selecione o Professor</option>
-                                                <option v-for="professor in getProfessoresParaUCD(ucd.materia_id)" :key="professor.id" :value="professor.id">{{ professor.nome }}</option>
+                                                <option v-for="professor in props.professores.filter(p => p.materias.some(m => m.id === ucd.materia_id))" :key="professor.id" :value="professor.id">{{ professor.nome }}</option>
                                             </select>
                                         </div>
-                                        
                                         <div class="md:col-span-2">
-                                            <InputLabel :for="'ucd_sala_'+index" class="text-xs mb-1">Sala</InputLabel>
-                                            <select :id="'ucd_sala_'+index" v-model="ucd.sala" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-xs">
-                                                <option value="" disabled>Selecione a Sala</option>
-                                                <option v-for="sala in props.salas" :key="sala.id" :value="sala.nome">
-                                                    {{ sala.nome }} (Cap: {{ sala.capacidade }})
-                                                </option>
+                                            <InputLabel :for="'ucd_sala_'+index" class="text-xs mb-1 text-gray-700 dark:text-gray-300">Sala</InputLabel>
+                                            <select :id="'ucd_sala_'+index" v-model="ucd.sala" class="block w-full rounded-md border-gray-300 dark:border-gray-300/40 dark:bg-neutral-800 dark:text-gray-200 shadow-sm sm:text-xs">
+                                                <option value="" disabled>Sala</option>
+                                                <option v-for="sala in props.salas" :key="sala.id" :value="sala.nome">{{ sala.nome }} (Cap: {{ sala.capacidade }})</option>
                                             </select>
                                         </div>
-
                                         <div class="md:col-span-2">
-                                            <InputLabel :for="'ucd_code_'+index" class="text-xs mb-1">Classroom</InputLabel>
-                                            <TextInput :id="'ucd_code_'+index" type="text" v-model="ucd.classroom_code" class="w-full text-xs" />
+                                            <InputLabel :for="'ucd_code_'+index" class="text-xs mb-1 text-gray-700 dark:text-gray-300">Classroom</InputLabel>
+                                            <TextInput :id="'ucd_code_'+index" type="text" v-model="ucd.classroom_code" class="w-full text-xs dark:bg-neutral-800 dark:border-gray-300/40 dark:text-gray-200" />
                                         </div>
                                         <div class="md:col-span-1 flex items-end justify-center">
-                                            <button @click="removeUcd(index)" type="button" class="text-red-500 hover:text-red-700 font-bold p-1 rounded-full hover:bg-red-100">X</button>
+                                            <button @click="removeUcd(index)" type="button" class="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-bold p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-500/20">X</button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="flex items-center justify-end mt-8 pt-6 border-t border-gray-200 dark:border-neutral-700">
-                                <Link :href="route('grades.index')" class="inline-flex items-center px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-md font-semibold text-xs text-gray-800 dark:text-gray-300 uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-neutral-700 dark:hover:border-neutral-700 focus:outline-none">
+                                <Link :href="route('grades.index')" class="inline-flex items-center px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-md font-semibold text-xs text-gray-800 dark:text-gray-300 uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-neutral-700 focus:outline-none">
                                     Cancelar
                                 </Link>
-                                <PrimaryButton :disabled="form.processing || !canSubmit">Salvar Nova Grade</PrimaryButton>
+                                <PrimaryButton :disabled="form.processing || !canSubmit" class="ms-4 bg-orange-600 hover:bg-orange-700 dark:bg-orange-700 dark:hover:bg-orange-600">
+                                    Salvar Nova Grade
+                                </PrimaryButton>
                             </div>
                         </form>
                     </div>

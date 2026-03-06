@@ -28,16 +28,7 @@ class Materia extends Model
         'modalidade',   
         'comp_tipo',    
         'ensw_tipo',
-        'grupo_id',
     ];
-
-    /**
-     * Get the grupo that this materia belongs to.
-     */
-    public function grupo()
-    {
-        return $this->belongsTo(GrupoMateria::class, 'grupo_id');
-    }
 
     /**
      * Get the grade_horarios for the materia.
@@ -45,5 +36,13 @@ class Materia extends Model
     public function gradeHorarios()
     {
         return $this->hasMany(GradeHorario::class);
+    }
+
+    /**
+     * Get the professors that teach this materia.
+     */
+    public function professores()
+    {
+        return $this->belongsToMany(Professor::class, 'materia_professor', 'materia_id', 'professor_id');
     }
 }

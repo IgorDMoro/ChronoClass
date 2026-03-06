@@ -7,7 +7,7 @@ use App\Models\Horario;
 use App\Models\Materia;
 use App\Models\Professor;
 use App\Models\Sala;
-use App\Models\GrupoMateria;
+use App\Models\Turma;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
@@ -17,56 +17,48 @@ class GradeController extends Controller
     public function index()
     {
         return Inertia::render('Grades/Index', [
-            'grades' => Grade::orderBy('pinned_at', 'desc')->orderBy('created_at', 'desc')->get(),
+            'grades' => Grade::with('turma')->orderBy('pinned_at', 'desc')->orderBy('created_at', 'desc')->get(),
         ]);
     }
 
     public function create()
     {
         return Inertia::render('Grades/Create', [
-            'grupos' => GrupoMateria::with('materias')->get(),
-            'materias_presenciais' => Materia::where('modalidade', 'Presencial')->with('grupo')->get(),
-            'materias_ucd' => Materia::where('modalidade', 'UCD')->with('grupo')->get(),
-            'professores' => Professor::with(['materias', 'gruposMaterias', 'horariosDisponiveisPivot'])->get(),
-            'existingHorarios' => Horario::with('grade:id,nome')->select('dia_semana', 'horario_bloco', 'professor_id', 'grade_id')->get(),
-            'salas' => Sala::all(),
+            'materias_presenciais' => Materia::where('modalidade', 'Presencial')->get(),
+            'materias_ucd'         => Materia::where('modalidade', 'UCD')->get(),
+            'professores'          => Professor::with(['materias', 'horariosDisponiveisPivot'])->get(),
+            'existingHorarios'     => Horario::with('grade:id,nome')->select('dia_semana', 'horario_bloco', 'professor_id', 'grade_id')->get(),
+            'salas'                => Sala::all(),
+            'turmas'               => Turma::all(),
         ]);
     }
 
-    /**
-     * Get professores that teach a specific materia.
-     */
     public function getProfessoresPorMateria($materiaId)
     {
-        $materia = Materia::with('grupo.professores')->findOrFail($materiaId);
-        
-        if ($materia->grupo) {
-            return response()->json($materia->grupo->professores);
-        }
+        $materia = Materia::with('professores')->findOrFail($materiaId);
 
-        return response()->json(Professor::all());
+        return response()->json($materia->professores);
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nome' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'semestre' => 'required|string|max:255',
-            'curso' => 'required|array|min:1',
+            'turma_id' => 'required|exists:turmas,id',
+            'curso'    => 'required|array|min:1',
+            'curso.*'  => 'required|string|in:Engenharia de Software,Ciências da Computação',
             'horarios' => 'present|array',
         ]);
 
         try {
             DB::transaction(function () use ($validated) {
+                $turma = Turma::findOrFail($validated['turma_id']);
+
                 $grade = Grade::create([
-                    'nome' => $validated['nome'],
-                    'description' => $validated['description'],
-                    'semestre' => $validated['semestre'],
-                    'curso' => $validated['curso'],
+                    'nome'     => $turma->nome . ' — ' . $turma->semestre,
+                    'curso'    => $validated['curso'],
+                    'turma_id' => $validated['turma_id'],
                 ]);
 
-                // Criar horários com grade_id
                 foreach ($validated['horarios'] as $horarioData) {
                     $horarioData['grade_id'] = $grade->id;
                     Horario::create($horarioData);
@@ -75,15 +67,14 @@ class GradeController extends Controller
 
             return redirect()->route('grades.index')->with('success', 'Grade criada com sucesso!');
         } catch (\Exception $e) {
-            \Log::error('Erro ao criar grade: ' . $e->getMessage());
-            \Log::error('Dados recebidos: ' . json_encode($validated));
             return back()->withInput()->withErrors(['error' => 'Erro ao criar grade: ' . $e->getMessage()]);
         }
     }
 
     public function show(Grade $grade)
     {
-        $grade->load('horarios.materia', 'horarios.professor');
+        $grade->load('horarios.materia', 'horarios.professor', 'turma');
+
         return Inertia::render('Grades/Show', [
             'grade' => $grade,
         ]);
@@ -91,45 +82,38 @@ class GradeController extends Controller
 
     public function edit(Grade $grade)
     {
-        $materias_presenciais = Materia::all();
-        $professores = Professor::all();
-        $salas = Sala::all();
-        
-        // Carrega os horários relacionados
-        $existingHorarios = $grade->horarios()->get();
-
-        return inertia('Grades/Edit', [
-            'grade' => $grade,
-            'existingHorarios' => $existingHorarios,
-            'materias_presenciais' => $materias_presenciais,
-            'professores' => $professores,
-            'salas' => $salas,
+        return Inertia::render('Grades/Edit', [
+            'grade'                => $grade->load('turma'),
+            'existingHorarios'     => $grade->horarios()->get(),
+            'materias_presenciais' => Materia::all(),
+            'materias_ucd'         => Materia::where('modalidade', 'UCD')->get(),
+            'professores'          => Professor::with(['materias'])->get(),
+            'salas'                => Sala::all(),
+            'turmas'               => Turma::all(),
         ]);
     }
 
     public function update(Request $request, Grade $grade)
     {
         $validated = $request->validate([
-            'nome' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'semestre' => 'required|string|max:255',
-            'curso' => 'required|array|min:1',
+            'turma_id' => 'required|exists:turmas,id',
+            'curso'    => 'required|array|min:1',
+            'curso.*'  => 'required|string|in:Engenharia de Software,Ciências da Computação',
             'horarios' => 'present|array',
         ]);
 
         try {
             DB::transaction(function () use ($validated, $grade) {
+                $turma = Turma::findOrFail($validated['turma_id']);
+
                 $grade->update([
-                    'nome' => $validated['nome'],
-                    'description' => $validated['description'],
-                    'semestre' => $validated['semestre'],
-                    'curso' => $validated['curso'],
+                    'nome'     => $turma->nome . ' — ' . $turma->semestre,
+                    'curso'    => $validated['curso'],
+                    'turma_id' => $validated['turma_id'],
                 ]);
 
-                // Remove horários antigos
                 $grade->horarios()->delete();
 
-                // Cria novos horários
                 foreach ($validated['horarios'] as $horarioData) {
                     $horarioData['grade_id'] = $grade->id;
                     Horario::create($horarioData);
@@ -138,8 +122,6 @@ class GradeController extends Controller
 
             return redirect()->route('grades.index')->with('success', 'Grade atualizada com sucesso!');
         } catch (\Exception $e) {
-            \Log::error('Erro ao atualizar grade: ' . $e->getMessage());
-            \Log::error('Dados recebidos: ' . json_encode($validated));
             return back()->withInput()->withErrors(['error' => 'Erro ao atualizar grade: ' . $e->getMessage()]);
         }
     }
@@ -147,6 +129,7 @@ class GradeController extends Controller
     public function destroy(Grade $grade)
     {
         $grade->delete();
+
         return redirect()->route('grades.index')->with('success', 'Grade excluída com sucesso.');
     }
 
@@ -154,6 +137,7 @@ class GradeController extends Controller
     {
         $grade->pinned_at = $grade->pinned_at ? null : now();
         $grade->save();
+
         return back();
     }
 }

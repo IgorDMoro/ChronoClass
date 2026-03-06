@@ -8,7 +8,6 @@ use App\Http\Controllers\ProfessorController;
 use App\Http\Controllers\SalaController;
 use App\Http\Controllers\MateriaController;
 use App\Http\Controllers\TurmaController;
-use App\Http\Controllers\GrupoMateriaController;
 use App\Http\Controllers\GradeController;
 
 Route::get('/', function () {
@@ -69,16 +68,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/materias/import', [MateriaController::class, 'import'])->name('materias.import');
     Route::post('/materias/{materia}/update-post', [MateriaController::class, 'updateWithPost'])->name('materias.update-post');
     Route::post('/materias/{materia}/delete-post', [MateriaController::class, 'destroyWithPost'])->name('materias.delete-post');
-
-    // Grupos de Matérias
-    Route::get('/grupos-materias', [GrupoMateriaController::class, 'index'])->name('grupos_materias.index');
-    Route::get('/grupos-materias/create', [GrupoMateriaController::class, 'create'])->name('grupos_materias.create');
-    Route::post('/grupos-materias', [GrupoMateriaController::class, 'store'])->name('grupos_materias.store');
-    Route::get('/grupos-materias/{grupoMateria}/edit', [GrupoMateriaController::class, 'edit'])->name('grupos_materias.edit');
-    Route::patch('/grupos-materias/{grupoMateria}', [GrupoMateriaController::class, 'update'])->name('grupos_materias.update');
-    Route::post('/grupos-materias/{grupoMateria}/update-post', [GrupoMateriaController::class, 'updateWithPost'])->name('grupos_materias.update-post');
-    Route::delete('/grupos-materias/{grupoMateria}', [GrupoMateriaController::class, 'destroy'])->name('grupos_materias.destroy');
-    Route::post('/grupos-materias/{grupoMateria}/destroy-post', [GrupoMateriaController::class, 'destroyWithPost'])->name('grupos_materias.destroy-post');
 
     // Turmas
     Route::get('/turmas', [TurmaController::class, 'index'])->name('turmas.index');

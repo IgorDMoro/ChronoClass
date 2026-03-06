@@ -5,7 +5,6 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 
 const props = defineProps({
     materia: Object,
-    grupos: Array,
 });
 
 const form = useForm({
@@ -15,7 +14,6 @@ const form = useForm({
     modalidade: props.materia.modalidade,
     comp_tipo: props.materia.comp_tipo,
     ensw_tipo: props.materia.ensw_tipo,
-    grupo_id: props.materia.grupo_id || null,
 });
 
 const submitForm = () => {
@@ -85,18 +83,6 @@ const submitForm = () => {
                                             <option value="Flex">Flex</option>
                                         </select>
                                         <InputError class="mt-2" :message="form.errors.ensw_tipo" />
-                                    </div>
-                                </div>
-                                <div class="grid grid-cols-1 md:grid-cols-1 gap-6 mt-6">
-                                    <div>
-                                        <label for="grupo_id" class="text-sm font-medium text-gray-700 dark:text-gray-300">Grupo de Matérias:</label>
-                                        <select id="grupo_id" v-model="form.grupo_id" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200">
-                                            <option :value="null">-- Nenhum --</option>
-                                            <option v-for="grupo in grupos" :key="grupo.id" :value="grupo.id">
-                                                {{ grupo.nome }}
-                                            </option>
-                                        </select>
-                                        <InputError class="mt-2" :message="form.errors.grupo_id" />
                                     </div>
                                 </div>
                             </div>

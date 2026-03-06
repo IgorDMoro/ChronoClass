@@ -56,14 +56,6 @@ class Professor extends Model
     }
 
     /**
-     * Get the grupos de matérias that the professor can teach.
-     */
-    public function gruposMaterias(): BelongsToMany
-    {
-        return $this->belongsToMany(GrupoMateria::class, 'professor_grupo_materia', 'professor_id', 'grupo_id');
-    }
-
-    /**
      *
      * Accessor para a disponibilidade formatada (estilo antigo do Laravel).
      * Isso é chamado automaticamente por causa do '$appends' acima.
