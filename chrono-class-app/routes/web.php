@@ -9,6 +9,7 @@ use App\Http\Controllers\SalaController;
 use App\Http\Controllers\MateriaController;
 use App\Http\Controllers\TurmaController;
 use App\Http\Controllers\GradeController;
+use App\Http\Controllers\PlannerController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -78,15 +79,18 @@ Route::middleware('auth')->group(function () {
     Route::post('/turmas/{turma}/delete-post', [TurmaController::class, 'destroyWithPost'])->name('turmas.delete-post');
 
     // Grades  
+    
     Route::get('/grades', [GradeController::class, 'index'])->name('grades.index');
     Route::get('/grades/create', [GradeController::class, 'create'])->name('grades.create');
     Route::get('/grades/api/professores-por-materia/{materiaId}', [GradeController::class, 'getProfessoresPorMateria'])->name('grades.professores-por-materia');
     Route::post('/grades', [GradeController::class, 'store'])->name('grades.store');
+    Route::get('/grades/planner',[PlannerController::class, 'index'])->name('grades.planner');
+    Route::post('/grades/planner/salvar', [PlannerController::class, 'salvar'])->name('grades.planner.salvar');    
     Route::get('/grades/{grade}', [GradeController::class, 'show'])->name('grades.show');
     Route::get('/grades/{grade}/edit', [GradeController::class, 'edit'])->name('grades.edit');
     Route::post('/grades/{grade}/update-post', [GradeController::class, 'update'])->name('grades.update-post');
     Route::post('/grades/{grade}', [GradeController::class, 'destroy'])->name('grades.destroy');
     Route::post('/grades/{grade}/pin', [GradeController::class, 'pin'])->name('grades.pin');
-});
+    });
 
 require __DIR__ . '/auth.php';

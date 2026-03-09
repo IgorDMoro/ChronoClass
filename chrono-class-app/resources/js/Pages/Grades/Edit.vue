@@ -10,17 +10,21 @@ import { ref, computed, onMounted, watch } from 'vue';
 const props = defineProps({
     grade: Object,
     existingHorarios: Array,
+    existingHorariosOutrasGrades: Array,
     materias_presenciais: Array,
     materias_ucd: Array,
     professores: Array,
     salas: Array,
     turmas: Array,
+    anoAtual: Number,
 });
 
 // --- Estado do Componente ---
 const form = useForm({
     turma_id: props.grade?.turma_id || '',
     curso:    props.grade?.curso    || [],
+    bimestre: props.grade?.bimestre || '',
+    ano:      props.grade?.ano      || '',
     horarios: [],
 });
 
@@ -30,7 +34,7 @@ const cursoOptions = ['Engenharia de Software', 'Ciências da Computação'];
 const selectedTurmaLabel = computed(() => {
     if (!form.turma_id) return null;
     const t = props.turmas.find(t => t.id == form.turma_id);
-    return t ? `${t.nome} — ${t.semestre}` : null;
+    return t ? t.nome : null;
 });
 
 const showSabado = ref(false);
@@ -117,7 +121,7 @@ const loadExistingGrade = () => {
 const materiasCore = computed(() => props.materias_presenciais);
 const materiasFlex = computed(() => props.materias_presenciais);
 
-const canSubmit = computed(() => form.turma_id && form.curso.length > 0);
+const canSubmit = computed(() => form.turma_id && form.curso.length > 0 && form.bimestre && form.ano);
 
 const getProfessoresParaMateria = async (materiaId, slotId) => {
     if (!materiaId) {
@@ -144,14 +148,15 @@ const checkForConflict = (aula, celula, slotId) => {
         delete conflictWarnings.value[key];
         return;
     }
-    const conflict = props.existingHorarios.find(h =>
+    // Usa os horários de OUTRAS grades do mesmo bimestre/ano (já filtrados no backend)
+    const fonte = props.existingHorariosOutrasGrades || [];
+    const conflict = fonte.find(h =>
         h.dia_semana === celula.dia_semana &&
         h.horario_bloco === celula.horario_bloco &&
-        h.professor_id === aula.professor_id &&
-        h.id !== slotId
+        h.professor_id === aula.professor_id
     );
     if (conflict) {
-        conflictWarnings.value[key] = `Conflito: Prof. já alocado.`;
+        conflictWarnings.value[key] = `Conflito: Prof. já alocado na grade "${conflict.grade?.nome}".`;
     } else {
         delete conflictWarnings.value[key];
     }
@@ -204,6 +209,14 @@ const submit = () => {
     }
     if (form.curso.length === 0) {
         alert('Selecione pelo menos um Curso!');
+        return;
+    }
+    if (!form.bimestre) {
+        alert('Selecione o Bimestre!');
+        return;
+    }
+    if (!form.ano) {
+        alert('Informe o Ano!');
         return;
     }
 
@@ -290,7 +303,7 @@ onMounted(() => {
                                         >
                                             <option value="" disabled>Selecione uma Turma</option>
                                             <option v-for="turma in props.turmas" :key="turma.id" :value="turma.id">
-                                                {{ turma.nome }} — {{ turma.semestre }}
+                                                {{ turma.nome }}
                                             </option>
                                         </select>
                                         <InputError class="mt-1" :message="form.errors.turma_id" />
@@ -334,6 +347,71 @@ onMounted(() => {
                                                 Turma Mista
                                             </span>
                                         </div>
+                                    </div>
+                                </div>
+
+                                <!-- Segunda linha: Bimestre + Ano -->
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start mt-6 pt-6 border-t border-gray-200 dark:border-neutral-700">
+
+                                    <!-- Seleção de Bimestre -->
+                                    <div>
+                                        <InputLabel for="bimestre" class="text-gray-700 dark:text-gray-300 font-semibold mb-1">
+                                            Bimestre <span class="text-red-500">*</span>
+                                        </InputLabel>
+                                        <div class="mt-2 flex gap-3 flex-wrap">
+                                            <label
+                                                v-for="b in [1, 2, 3, 4]"
+                                                :key="b"
+                                                class="flex items-center gap-2 cursor-pointer px-4 py-2 rounded-md border transition-colors"
+                                                :class="form.bimestre == b
+                                                    ? 'border-orange-500 bg-orange-50 dark:bg-orange-500/10 text-orange-700 dark:text-orange-300'
+                                                    : 'border-gray-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 text-gray-700 dark:text-gray-300 hover:border-orange-400'"
+                                            >
+                                                <input
+                                                    type="radio"
+                                                    v-model="form.bimestre"
+                                                    :value="b"
+                                                    class="text-orange-600 focus:ring-orange-500"
+                                                />
+                                                <span class="text-sm font-medium">{{ b }}º Bim.</span>
+                                            </label>
+                                        </div>
+                                        <InputError class="mt-1" :message="form.errors.bimestre" />
+                                    </div>
+
+                                    <!-- Ano -->
+                                    <div>
+                                        <InputLabel for="ano" class="text-gray-700 dark:text-gray-300 font-semibold mb-1">
+                                            Ano <span class="text-red-500">*</span>
+                                        </InputLabel>
+                                        <div class="mt-1 flex items-center gap-3 flex-wrap">
+                                            <input
+                                                id="ano"
+                                                type="number"
+                                                v-model="form.ano"
+                                                :min="2020"
+                                                :max="2100"
+                                                class="w-32 rounded-md border-gray-300 dark:border-gray-300/40 dark:bg-neutral-800 dark:text-gray-200 shadow-sm focus:ring-orange-500 focus:border-orange-500"
+                                            />
+                                            <div class="flex gap-2">
+                                                <button
+                                                    v-for="anoOpt in [props.anoAtual - 1, props.anoAtual, props.anoAtual + 1]"
+                                                    :key="anoOpt"
+                                                    type="button"
+                                                    @click="form.ano = anoOpt"
+                                                    class="px-3 py-1.5 text-xs rounded-md border transition-colors"
+                                                    :class="form.ano == anoOpt
+                                                        ? 'border-orange-500 bg-orange-50 dark:bg-orange-500/10 text-orange-700 dark:text-orange-300 font-semibold'
+                                                        : 'border-gray-300 dark:border-neutral-600 text-gray-600 dark:text-gray-400 hover:border-orange-400'"
+                                                >
+                                                    {{ anoOpt }}
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <InputError class="mt-1" :message="form.errors.ano" />
+                                        <p v-if="form.bimestre && form.ano" class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                            Período: <span class="font-semibold text-orange-600 dark:text-orange-400">{{ form.bimestre }}º Bimestre de {{ form.ano }}</span>
+                                        </p>
                                     </div>
                                 </div>
                             </div>
