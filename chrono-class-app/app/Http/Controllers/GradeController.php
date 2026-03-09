@@ -29,8 +29,8 @@ class GradeController extends Controller
     public function create()
     {
         return Inertia::render('Grades/Create', [
-            'materias_presenciais' => Materia::where('modalidade', 'Presencial')->get(),
-            'materias_ucd'         => Materia::where('modalidade', 'UCD')->get(),
+            'materias_presenciais' => Materia::where('modalidade', 'Presencial')->whereHas('professores')->get(),
+            'materias_ucd'         => Materia::where('modalidade', 'UCD')->whereHas('professores')->get(),
             'professores'          => Professor::with(['materias', 'horariosDisponiveisPivot'])->get(),
             // Passa todos os horários existentes com bimestre/ano da grade — o frontend filtra pelo período selecionado
             'existingHorarios'     => Horario::with('grade:id,nome,bimestre,ano')
@@ -98,8 +98,8 @@ class GradeController extends Controller
         return Inertia::render('Grades/Edit', [
             'grade'                => $grade->load('turma'),
             'existingHorarios'     => $grade->horarios()->get(),
-            'materias_presenciais' => Materia::all(),
-            'materias_ucd'         => Materia::where('modalidade', 'UCD')->get(),
+            'materias_presenciais' => Materia::where('modalidade', 'Presencial')->whereHas('professores')->get(),
+            'materias_ucd'         => Materia::where('modalidade', 'UCD')->whereHas('professores')->get(),
             'professores'          => Professor::with(['materias'])->get(),
             'salas'                => Sala::all(),
             'turmas'               => Turma::all(),

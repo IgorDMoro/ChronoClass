@@ -54,6 +54,27 @@ const materiaNames = ref({});
 const professorNames = ref({});
 const salaInfo = ref({});
 
+// Busca inline de matéria por slot
+const buscaMateria = ref({}); // { [slotId]: string }
+
+const getBuscaMateria = (slotId) => buscaMateria.value[slotId] || '';
+const setBuscaMateria = (slotId, val) => { buscaMateria.value[slotId] = val; };
+
+const getMateriasFiltradas = (slotId, lista) => {
+    const q = (buscaMateria.value[slotId] || '').toLowerCase().trim();
+    if (!q) return [];
+    return lista.filter(m => m.nome.toLowerCase().includes(q));
+};
+
+const selecionarMateria = (slot, materia, onChangeFn) => {
+    slot.aula.materia_id = materia.id;
+    buscaMateria.value[slot.id] = '';
+    if (onChangeFn) onChangeFn(materia.id, slot.id);
+};
+
+const getMateriaLabel = (materiaId, lista) =>
+    lista.find(m => m.id == materiaId)?.nome || '';
+
 const diasDaSemana = ['SEGUNDA', 'TERÇA', 'QUARTA', 'QUINTA', 'SEXTA'];
 const horariosBlocos = ['19:00-20:30', '20:45-22:15'];
 const horarioSabado = '08:00-12:00';
@@ -440,11 +461,28 @@ const submit = () => {
 
                                                             <div v-if="slot.type && slot.type !== 'Flex'" class="space-y-1.5 min-w-0">
                                                                 <p class="text-[11px] font-bold text-center" :class="{'text-blue-800 dark:text-blue-400': slot.type.includes('Engenharia'), 'text-green-800 dark:text-green-400': slot.type.includes('Ciências'), 'text-orange-800 dark:text-orange-400': slot.type.includes('Ambos')}">{{ slot.type }}</p>
-                                                                <select v-model="slot.aula.materia_id" @change="getProfessoresParaMateria(slot.aula.materia_id, slot.id)" class="w-full rounded-md border-gray-300 dark:border-gray-300/40 dark:bg-neutral-700 dark:text-gray-200 text-xs px-2 py-1">
-                                                                    <option value="" disabled>Matéria</option>
-                                                                    <option v-for="materia in materiasCore" :key="materia.id" :value="materia.id">{{ materia.nome }}</option>
-                                                                </select>
-                                                                <div v-if="loadingProfessores[`slot-${slot.id}`]" class="text-[10px] text-gray-500 dark:text-gray-400 italic">Carregando professores...</div>
+                                                                <!-- Busca inline de matéria -->
+                                                                <div class="space-y-1">
+                                                                    <input
+                                                                        type="text"
+                                                                        :value="getBuscaMateria(slot.id)"
+                                                                        @input="setBuscaMateria(slot.id, $event.target.value)"
+                                                                        placeholder="🔎 Buscar matéria..."
+                                                                        class="w-full rounded-md border-gray-300 dark:border-gray-300/40 dark:bg-neutral-700 dark:text-gray-200 text-xs px-2 py-1 focus:border-orange-400 dark:focus:border-orange-500 focus:ring-0"
+                                                                    />
+                                                                    <div v-if="slot.aula.materia_id" class="flex items-center justify-between px-2 py-1 rounded bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300 text-xs font-semibold">
+                                                                        <span class="truncate">{{ getMateriaLabel(slot.aula.materia_id, materiasCore) }}</span>
+                                                                        <button type="button" @click="slot.aula.materia_id = ''; filteredProfessores[slot.id] = []" class="ml-1 shrink-0 font-bold hover:text-red-500">×</button>
+                                                                    </div>
+                                                                    <ul v-if="getBuscaMateria(slot.id).trim()" class="max-h-28 overflow-y-auto rounded-md border border-gray-200 dark:border-neutral-600 bg-white dark:bg-neutral-800 divide-y divide-gray-100 dark:divide-neutral-700">
+                                                                        <li v-for="m in getMateriasFiltradas(slot.id, materiasCore)" :key="m.id"
+                                                                            @mousedown.prevent="selecionarMateria(slot, m, getProfessoresParaMateria); setBuscaMateria(slot.id, '')"
+                                                                            class="px-2 py-1.5 text-xs cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-200">
+                                                                            {{ m.nome }}
+                                                                        </li>
+                                                                        <li v-if="getMateriasFiltradas(slot.id, materiasCore).length === 0" class="px-2 py-2 text-xs text-gray-400 text-center italic">Nenhuma encontrada</li>
+                                                                    </ul>
+                                                                </div>                                                                <div v-if="loadingProfessores[`slot-${slot.id}`]" class="text-[10px] text-gray-500 dark:text-gray-400 italic">Carregando professores...</div>
                                                                 <select v-model="slot.aula.professor_id" @change="checkForConflict(slot.aula, gradeVisual[dia][hIndex], slot.id)" :disabled="!slot.aula.materia_id || loadingProfessores[`slot-${slot.id}`]" class="w-full rounded-md border-gray-300 dark:border-gray-300/40 dark:bg-neutral-700 dark:text-gray-200 text-xs px-2 py-1 disabled:bg-gray-100 dark:disabled:bg-neutral-800">
                                                                     <option value="" disabled>Professor</option>
                                                                     <option v-for="prof in (filteredProfessores[slot.id] || [])" :key="prof.id" :value="prof.id">{{ prof.nome }}</option>
@@ -467,10 +505,28 @@ const submit = () => {
                                                                 <div v-for="(flexAula, fIndex) in slot.flex_aulas" :key="flexAula.id" class="space-y-1.5 border-t border-gray-300 dark:border-neutral-700 pt-1.5">
                                                                     <div class="flex gap-1.5 items-start">
                                                                         <div class="flex-1 space-y-1.5">
-                                                                            <select v-model="flexAula.materia_id" @change="getProfessoresParaMateria(flexAula.materia_id, `flex-${slot.id}-${fIndex}`)" class="w-full rounded-md border-gray-300 dark:border-gray-300/40 dark:bg-neutral-700 dark:text-gray-200 text-xs px-2 py-1">
-                                                                                <option value="" disabled>Matéria</option>
-                                                                                <option v-for="materia in materiasFlex" :key="materia.id" :value="materia.id">{{ materia.nome }}</option>
-                                                                            </select>
+                                                                            <!-- Busca inline de matéria flex -->
+                                                                            <div class="space-y-1">
+                                                                                <input
+                                                                                    type="text"
+                                                                                    :value="getBuscaMateria(`flex-${slot.id}-${fIndex}`)"
+                                                                                    @input="setBuscaMateria(`flex-${slot.id}-${fIndex}`, $event.target.value)"
+                                                                                    placeholder="🔎 Buscar matéria..."
+                                                                                    class="w-full rounded-md border-gray-300 dark:border-gray-300/40 dark:bg-neutral-700 dark:text-gray-200 text-xs px-2 py-1 focus:border-orange-400 dark:focus:border-orange-500 focus:ring-0"
+                                                                                />
+                                                                                <div v-if="flexAula.materia_id" class="flex items-center justify-between px-2 py-1 rounded bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300 text-xs font-semibold">
+                                                                                    <span class="truncate">{{ getMateriaLabel(flexAula.materia_id, materiasFlex) }}</span>
+                                                                                    <button type="button" @click="flexAula.materia_id = ''" class="ml-1 shrink-0 font-bold hover:text-red-500">×</button>
+                                                                                </div>
+                                                                                <ul v-if="getBuscaMateria(`flex-${slot.id}-${fIndex}`).trim()" class="max-h-28 overflow-y-auto rounded-md border border-gray-200 dark:border-neutral-600 bg-white dark:bg-neutral-800 divide-y divide-gray-100 dark:divide-neutral-700">
+                                                                                    <li v-for="m in getMateriasFiltradas(`flex-${slot.id}-${fIndex}`, materiasFlex)" :key="m.id"
+                                                                                        @mousedown.prevent="flexAula.materia_id = m.id; getProfessoresParaMateria(m.id, `flex-${slot.id}-${fIndex}`); setBuscaMateria(`flex-${slot.id}-${fIndex}`, '')"
+                                                                                        class="px-2 py-1.5 text-xs cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-200">
+                                                                                        {{ m.nome }}
+                                                                                    </li>
+                                                                                    <li v-if="getMateriasFiltradas(`flex-${slot.id}-${fIndex}`, materiasFlex).length === 0" class="px-2 py-2 text-xs text-gray-400 text-center italic">Nenhuma encontrada</li>
+                                                                                </ul>
+                                                                            </div>
                                                                             <div v-if="loadingProfessores[`slot-flex-${slot.id}-${fIndex}`]" class="text-[10px] text-gray-500 dark:text-gray-400 italic">Carregando professores...</div>
                                                                             <select v-model="flexAula.professor_id" :disabled="!flexAula.materia_id || loadingProfessores[`slot-flex-${slot.id}-${fIndex}`]" class="w-full rounded-md border-gray-300 dark:border-gray-300/40 dark:bg-neutral-700 dark:text-gray-200 text-xs px-2 py-1 disabled:bg-gray-100 dark:disabled:bg-neutral-800">
                                                                                 <option value="" disabled>Professor</option>
@@ -525,10 +581,27 @@ const submit = () => {
                                     <div v-for="(ucd, index) in gradeUcd" :key="index" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center p-3 border border-gray-200 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900">
                                         <div class="md:col-span-4">
                                             <InputLabel :for="'ucd_materia_'+index" class="text-xs mb-1 text-gray-700 dark:text-gray-300">Matéria</InputLabel>
-                                            <select :id="'ucd_materia_'+index" v-model="ucd.materia_id" @change="ucd.professor_id = ''" class="block w-full rounded-md border-gray-300 dark:border-gray-300/40 dark:bg-neutral-800 dark:text-gray-200 shadow-sm sm:text-xs">
-                                                <option value="" disabled>Selecione a UCD</option>
-                                                <option v-for="materia in props.materias_ucd" :key="materia.id" :value="materia.id">{{ materia.nome }}</option>
-                                            </select>
+                                            <div class="space-y-1">
+                                                <input
+                                                    type="text"
+                                                    :value="getBuscaMateria(`ucd-${index}`)"
+                                                    @input="setBuscaMateria(`ucd-${index}`, $event.target.value)"
+                                                    placeholder="🔎 Buscar UCD..."
+                                                    class="block w-full rounded-md border-gray-300 dark:border-gray-300/40 dark:bg-neutral-800 dark:text-gray-200 text-xs px-2 py-1 focus:border-orange-400 dark:focus:border-orange-500 focus:ring-0"
+                                                />
+                                                <div v-if="ucd.materia_id" class="flex items-center justify-between px-2 py-1 rounded bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300 text-xs font-semibold">
+                                                    <span class="truncate">{{ getMateriaLabel(ucd.materia_id, props.materias_ucd) }}</span>
+                                                    <button type="button" @click="ucd.materia_id = ''; ucd.professor_id = ''" class="ml-1 shrink-0 font-bold hover:text-red-500">×</button>
+                                                </div>
+                                                <ul v-if="getBuscaMateria(`ucd-${index}`).trim()" class="max-h-28 overflow-y-auto rounded-md border border-gray-200 dark:border-neutral-600 bg-white dark:bg-neutral-800 divide-y divide-gray-100 dark:divide-neutral-700">
+                                                    <li v-for="m in getMateriasFiltradas(`ucd-${index}`, props.materias_ucd)" :key="m.id"
+                                                        @mousedown.prevent="ucd.materia_id = m.id; ucd.professor_id = ''; setBuscaMateria(`ucd-${index}`, '')"
+                                                        class="px-2 py-1.5 text-xs cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-200">
+                                                        {{ m.nome }}
+                                                    </li>
+                                                    <li v-if="getMateriasFiltradas(`ucd-${index}`, props.materias_ucd).length === 0" class="px-2 py-2 text-xs text-gray-400 text-center italic">Nenhuma encontrada</li>
+                                                </ul>
+                                            </div>
                                         </div>
                                         <div class="md:col-span-3">
                                             <InputLabel :for="'ucd_prof_'+index" class="text-xs mb-1 text-gray-700 dark:text-gray-300">Professor</InputLabel>
