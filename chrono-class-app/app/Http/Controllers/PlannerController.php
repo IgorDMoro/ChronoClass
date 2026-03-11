@@ -48,32 +48,32 @@ class PlannerController extends Controller
     public function salvar(Request $request)
     {
         $validated = $request->validate([
-            'alteracoes'                 => 'required|array|min:1',
-            'alteracoes.*.horario_id'    => 'required|integer|exists:horarios,id',
-            'alteracoes.*.para_grade_id' => 'required|integer|exists:grades,id',
+            'alteracoes'                   => 'required|array|min:1',
+            'alteracoes.*.horario_id'      => 'required|integer|exists:horarios,id',
+            'alteracoes.*.para_grade_id'   => 'required|integer|exists:grades,id',
+            'alteracoes.*.dia_semana'      => 'nullable|string',
+            'alteracoes.*.horario_bloco'   => 'nullable|string',
         ]);
 
         try {
             DB::transaction(function () use ($validated) {
                 $alteracoes = $validated['alteracoes'];
-
-                // Mapa horario_id → para_grade_id para detectar swaps
                 $destinoMap = collect($alteracoes)->keyBy('horario_id');
 
-                // Valida todos antes de mover qualquer um
                 foreach ($alteracoes as $alt) {
                     $horario   = Horario::findOrFail($alt['horario_id']);
                     $paraGrade = Grade::findOrFail($alt['para_grade_id']);
 
-                    // Conflito de professor no slot de destino
+                    $diaDest   = $alt['dia_semana']    ?? $horario->dia_semana;
+                    $blocoDest = $alt['horario_bloco'] ?? $horario->horario_bloco;
+
                     $conflitantes = Horario::where('grade_id', $paraGrade->id)
-                        ->where('dia_semana', $horario->dia_semana)
-                        ->where('horario_bloco', $horario->horario_bloco)
+                        ->where('dia_semana', $diaDest)
+                        ->where('horario_bloco', $blocoDest)
                         ->where('professor_id', $horario->professor_id)
                         ->get();
 
                     foreach ($conflitantes as $conflitante) {
-                        // Se o conflitante também está sendo movido para fora dessa grade = swap, tudo bem
                         $estaMovendo = $destinoMap->has($conflitante->id) &&
                                        $destinoMap[$conflitante->id]['para_grade_id'] != $paraGrade->id;
 
@@ -85,10 +85,11 @@ class PlannerController extends Controller
                     }
                 }
 
-                // Aplica todos os movimentos de uma vez
                 foreach ($alteracoes as $alt) {
-                    Horario::where('id', $alt['horario_id'])
-                        ->update(['grade_id' => $alt['para_grade_id']]);
+                    $updates = ['grade_id' => $alt['para_grade_id']];
+                    if (!empty($alt['dia_semana']))    $updates['dia_semana']    = $alt['dia_semana'];
+                    if (!empty($alt['horario_bloco'])) $updates['horario_bloco'] = $alt['horario_bloco'];
+                    Horario::where('id', $alt['horario_id'])->update($updates);
                 }
             });
 
