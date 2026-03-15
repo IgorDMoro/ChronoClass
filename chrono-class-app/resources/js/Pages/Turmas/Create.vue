@@ -3,10 +3,13 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import InputError from '@/Components/InputError.vue';
 import { Head, useForm, Link } from '@inertiajs/vue3';
 
+const bimestres = ['B1', 'B2', 'B3', 'B4'];
+
 const form = useForm({
     nome: '',
     periodo: '',
-    ano_letivo: new Date().getFullYear(),
+    ano_entrada: new Date().getFullYear(),
+    bimestre_entrada: '',
 });
 
 const submit = () => {
@@ -33,7 +36,7 @@ const submit = () => {
                                 Dados da Turma
                             </h5>
                             <div class="mt-8 border-t border-gray-200 dark:border-neutral-700 pt-6">
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                                     <div>
                                         <label for="nome" class="text-sm font-medium text-gray-700 dark:text-gray-300">Nome da Turma (Ex: E3 2024):</label>
                                         <input type="text" id="nome" v-model="form.nome" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200" required autofocus />
@@ -47,9 +50,18 @@ const submit = () => {
                                     </div>
 
                                     <div>
-                                        <label for="ano_letivo" class="text-sm font-medium text-gray-700 dark:text-gray-300">Ano Letivo:</label>
-                                        <input type="number" id="ano_letivo" v-model="form.ano_letivo" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200" required />
-                                        <InputError class="mt-2" :message="form.errors.ano_letivo" />
+                                        <label for="ano_entrada" class="text-sm font-medium text-gray-700 dark:text-gray-300">Ano de Entrada:</label>
+                                        <input type="number" id="ano_entrada" v-model="form.ano_entrada" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200" required />
+                                        <InputError class="mt-2" :message="form.errors.ano_entrada" />
+                                    </div>
+
+                                    <div>
+                                        <label for="bimestre_entrada" class="text-sm font-medium text-gray-700 dark:text-gray-300">Bimestre de Entrada:</label>
+                                        <select id="bimestre_entrada" v-model="form.bimestre_entrada" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200" required>
+                                            <option value="" disabled>Selecione...</option>
+                                            <option v-for="b in bimestres" :key="b" :value="b">{{ b }}</option>
+                                        </select>
+                                        <InputError class="mt-2" :message="form.errors.bimestre_entrada" />
                                     </div>
                                 </div>
                             </div>

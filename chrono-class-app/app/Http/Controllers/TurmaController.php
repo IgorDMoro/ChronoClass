@@ -23,9 +23,10 @@ class TurmaController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'nome' => 'required|string|max:255',
-            'periodo' => 'required|string|max:255',
-            'ano_letivo' => 'required|integer|min:2020',
+            'nome'             => 'required|string|max:255',
+            'periodo'          => 'required|string|max:255',
+            'ano_entrada'      => 'required|integer|min:2020',
+            'bimestre_entrada' => 'required|in:B1,B2,B3,B4',
         ]);
 
         Turma::create($request->all());
@@ -43,9 +44,10 @@ class TurmaController extends Controller
     public function update(Request $request, Turma $turma)
     {
         $request->validate([
-            'nome' => 'required|string|max:255',
-            'periodo' => 'required|string|max:255',
-            'ano_letivo' => 'required|integer|min:2020',
+            'nome'             => 'required|string|max:255',
+            'periodo'          => 'required|string|max:255',
+            'ano_entrada'      => 'required|integer|min:2020',
+            'bimestre_entrada' => 'required|in:B1,B2,B3,B4',
         ]);
 
         $turma->update($request->all());
@@ -54,27 +56,19 @@ class TurmaController extends Controller
     }
 
     public function updateWithPost(Request $request, Turma $turma)
-{
-    // Reutiliza a mesma lógica do método update original
-    return $this->update($request, $turma);
-}
+    {
+        return $this->update($request, $turma);
+    }
 
-/**
- * Remove the specified resource from storage using a POST request.
- */
-public function destroy(Turma $turma)
-{
-    $turma->delete();
+    public function destroy(Turma $turma)
+    {
+        $turma->delete();
 
-    return redirect()->route('turmas.index')
-                      ->with('success', 'Turma excluída com sucesso!');
-}
+        return redirect()->route('turmas.index')->with('success', 'Turma excluída com sucesso!');
+    }
 
-/**
- * Remove the specified resource from storage using a POST request.
- */
-public function destroyWithPost(Turma $turma)
-{
-    return $this->destroy($turma);
-}
+    public function destroyWithPost(Turma $turma)
+    {
+        return $this->destroy($turma);
+    }
 }

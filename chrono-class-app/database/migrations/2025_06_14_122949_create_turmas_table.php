@@ -6,23 +6,18 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('turmas', function (Blueprint $table) {
             $table->id();
             $table->string('nome');
-            $table->string('periodo');      // Corrigido de 'curso'
-            $table->integer('ano_letivo');  // Corrigido de 'semestre'
+            $table->string('periodo');
+            $table->integer('ano_entrada');
+            $table->string('bimestre_entrada');
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('turmas');

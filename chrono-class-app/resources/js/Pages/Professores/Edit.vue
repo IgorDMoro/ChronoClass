@@ -13,6 +13,8 @@ const props = defineProps({
     materias: Array,
 });
 
+
+// --- Form ---
 const form = useForm({
     matricula: props.professor.matricula,
     nome: props.professor.nome,
@@ -23,13 +25,40 @@ const form = useForm({
 });
 
 onMounted(() => {
-    if (props.professor.horarios_disponiveis_pivot) {
+    if (props.professor.horarios_disponiveis_pivot)
         form.horarios_disponiveis_selecionados = props.professor.horarios_disponiveis_pivot.map(h => `${h.dia_semana}-${h.horario}`);
-    }
-    if (props.professor.materias) {
+    if (props.professor.materias)
         form.materias_ids = props.professor.materias.map(m => m.id);
-    }
 });
+
+// --- Máscara telefone ---
+const formatTelefone = (e) => {
+    let v = e.target.value.replace(/\D/g, '').slice(0, 11);
+    if (v.length <= 10) {
+        v = v.replace(/^(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
+    } else {
+        v = v.replace(/^(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3');
+    }
+    form.telefone = v;
+};
+
+// --- Sábado: marcar/desmarcar todos juntos ---
+const handleSabadoCheck = (horario) => {
+    const todos = props.horariosDeAulaFinaisDeSemana.map(h => `sábado-${h}`);
+    const clicado = `sábado-${horario}`;
+    const jaMarcado = form.horarios_disponiveis_selecionados.includes(clicado);
+
+    if (jaMarcado) {
+        form.horarios_disponiveis_selecionados = form.horarios_disponiveis_selecionados.filter(
+            h => !todos.includes(h)
+        );
+    } else {
+        todos.forEach(h => {
+            if (!form.horarios_disponiveis_selecionados.includes(h))
+                form.horarios_disponiveis_selecionados.push(h);
+        });
+    }
+};
 
 // --- Busca e paginação de matérias ---
 const materiaBusca = ref('');
@@ -51,36 +80,10 @@ const materiasPaginadas = computed(() => {
     return materiasFiltradas.value.slice(inicio, inicio + materiasPorPagina);
 });
 
-const onBuscaMateria = () => {
-    materiasPagina.value = 1;
-};
-// ------------------------------------
-
-const isSabadoSelected = computed(() => {
-    return props.horariosDeAulaFinaisDeSemana.some(horario =>
-        form.horarios_disponiveis_selecionados.includes(`sábado-${horario}`)
-    );
-});
-
-const handleSabadoChange = (event) => {
-    const isChecked = event.target.checked;
-    props.horariosDeAulaFinaisDeSemana.forEach(horario => {
-        const sabadoValue = `sábado-${horario}`;
-        if (isChecked) {
-            if (!form.horarios_disponiveis_selecionados.includes(sabadoValue)) {
-                form.horarios_disponiveis_selecionados.push(sabadoValue);
-            }
-        } else {
-            const index = form.horarios_disponiveis_selecionados.indexOf(sabadoValue);
-            if (index > -1) form.horarios_disponiveis_selecionados.splice(index, 1);
-        }
-    });
-};
+const onBuscaMateria = () => { materiasPagina.value = 1; };
 
 const submit = () => {
-    form.post(route('professores.update-post', props.professor.id), {
-        onError: (errors) => console.error('Erro ao atualizar professor:', errors),
-    });
+    form.post(route("professores.update-post", props.professor.id));
 };
 
 const formatDia = (dia) => dia.charAt(0).toUpperCase() + dia.slice(1);
@@ -103,6 +106,7 @@ const formatDia = (dia) => dia.charAt(0).toUpperCase() + dia.slice(1);
                                 Editando: {{ professor.nome }}
                             </h5>
 
+                            <!-- Dados Pessoais -->
                             <div class="mt-8 border-t border-gray-200 dark:border-neutral-700 pt-6">
                                 <h4 class="text-lg font-semibold text-gray-800 dark:text-gray-300 mb-3">Dados Pessoais</h4>
                                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -123,12 +127,21 @@ const formatDia = (dia) => dia.charAt(0).toUpperCase() + dia.slice(1);
                                     </div>
                                     <div>
                                         <label for="telefone" class="text-sm font-medium text-gray-700 dark:text-gray-300">Telefone:</label>
-                                        <input type="text" id="telefone" v-model="form.telefone" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200" />
+                                        <input
+                                            type="text"
+                                            id="telefone"
+                                            :value="form.telefone"
+                                            @input="formatTelefone"
+                                            maxlength="16"
+                                            placeholder="(00) 00000-0000"
+                                            class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200"
+                                        />
                                         <InputError class="mt-2" :message="form.errors.telefone" />
                                     </div>
                                 </div>
                             </div>
 
+                            <!-- Disponibilidade Seg-Sex -->
                             <div class="mt-8 border-t border-gray-200 dark:border-neutral-700 pt-6">
                                 <h4 class="text-lg font-semibold text-gray-800 dark:text-gray-300 mb-3">Disponibilidade (Segunda a Sexta)</h4>
                                 <div class="overflow-x-auto">
@@ -151,6 +164,7 @@ const formatDia = (dia) => dia.charAt(0).toUpperCase() + dia.slice(1);
                                 </div>
                             </div>
 
+                            <!-- Disponibilidade Sábado -->
                             <div class="mt-6 border-t border-gray-200 dark:border-neutral-700 pt-6">
                                 <h4 class="text-lg font-semibold text-gray-800 dark:text-gray-300 mb-3">Disponibilidade (Sábado)</h4>
                                 <div class="overflow-x-auto">
@@ -165,7 +179,12 @@ const formatDia = (dia) => dia.charAt(0).toUpperCase() + dia.slice(1);
                                             <tr v-for="dia in finaisDeSemana" :key="dia" class="border-b border-gray-200 dark:border-neutral-800 last:border-b-0">
                                                 <td class="px-3 py-3 whitespace-nowrap font-medium text-gray-700 dark:text-gray-300">{{ formatDia(dia) }}</td>
                                                 <td v-for="horario in horariosDeAulaFinaisDeSemana" :key="`${dia}-${horario}`" class="px-3 py-3 text-center">
-                                                    <input type="checkbox" :value="`${dia}-${horario}`" v-model="form.horarios_disponiveis_selecionados" class="rounded border-gray-300 dark:border-gray-300/40 bg-gray-100 dark:bg-neutral-900 text-orange-500 shadow-sm focus:ring-orange-500" />
+                                                    <input
+                                                        type="checkbox"
+                                                        :checked="form.horarios_disponiveis_selecionados.includes(`${dia}-${horario}`)"
+                                                        @change="handleSabadoCheck(horario)"
+                                                        class="rounded border-gray-300 dark:border-gray-300/40 bg-gray-100 dark:bg-neutral-900 text-orange-500 shadow-sm focus:ring-orange-500"
+                                                    />
                                                 </td>
                                             </tr>
                                         </tbody>
@@ -174,7 +193,7 @@ const formatDia = (dia) => dia.charAt(0).toUpperCase() + dia.slice(1);
                                 <InputError class="mt-2" :message="form.errors.horarios_disponiveis_selecionados" />
                             </div>
 
-                            <!-- Seção de Matérias com busca e paginação -->
+                            <!-- Matérias -->
                             <div class="mt-8 border-t border-gray-200 dark:border-neutral-700 pt-6">
                                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                                     <div>
@@ -186,7 +205,6 @@ const formatDia = (dia) => dia.charAt(0).toUpperCase() + dia.slice(1);
                                             </span>
                                         </p>
                                     </div>
-                                    <!-- Campo de busca -->
                                     <div class="relative w-full sm:w-72">
                                         <span class="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-400 dark:text-gray-500">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -203,7 +221,6 @@ const formatDia = (dia) => dia.charAt(0).toUpperCase() + dia.slice(1);
                                     </div>
                                 </div>
 
-                                <!-- Grid de matérias paginadas -->
                                 <div v-if="materiasFiltradas.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     <label
                                         v-for="materia in materiasPaginadas"
@@ -228,64 +245,32 @@ const formatDia = (dia) => dia.charAt(0).toUpperCase() + dia.slice(1);
                                     Nenhuma matéria encontrada para "<span class="font-semibold">{{ materiaBusca }}</span>".
                                 </p>
 
-                                <!-- Paginação -->
                                 <div v-if="totalPaginas > 1" class="mt-4 flex items-center justify-between">
                                     <p class="text-xs text-gray-500 dark:text-gray-400">
                                         Página {{ materiasPagina }} de {{ totalPaginas }}
                                         ({{ materiasFiltradas.length }} matéria{{ materiasFiltradas.length > 1 ? 's' : '' }})
                                     </p>
                                     <div class="flex items-center gap-1">
-                                        <button
-                                            type="button"
-                                            @click="materiasPagina = 1"
-                                            :disabled="materiasPagina === 1"
-                                            class="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                                            title="Primeira página"
-                                        >
+                                        <button type="button" @click="materiasPagina = 1" :disabled="materiasPagina === 1" class="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors" title="Primeira página">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7M18 19l-7-7 7-7" /></svg>
                                         </button>
-                                        <button
-                                            type="button"
-                                            @click="materiasPagina--"
-                                            :disabled="materiasPagina === 1"
-                                            class="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                                            title="Página anterior"
-                                        >
+                                        <button type="button" @click="materiasPagina--" :disabled="materiasPagina === 1" class="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors" title="Página anterior">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
                                         </button>
-
                                         <template v-for="p in totalPaginas" :key="p">
                                             <button
                                                 v-if="p === 1 || p === totalPaginas || (p >= materiasPagina - 1 && p <= materiasPagina + 1)"
                                                 type="button"
                                                 @click="materiasPagina = p"
                                                 class="min-w-[2rem] h-8 px-2 rounded-md text-xs font-semibold transition-colors"
-                                                :class="materiasPagina === p
-                                                    ? 'bg-orange-500 dark:bg-orange-600 text-white'
-                                                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-700'"
+                                                :class="materiasPagina === p ? 'bg-orange-500 dark:bg-orange-600 text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-700'"
                                             >{{ p }}</button>
-                                            <span
-                                                v-else-if="p === materiasPagina - 2 || p === materiasPagina + 2"
-                                                class="text-gray-400 dark:text-gray-500 text-xs px-1"
-                                            >…</span>
+                                            <span v-else-if="p === materiasPagina - 2 || p === materiasPagina + 2" class="text-gray-400 dark:text-gray-500 text-xs px-1">…</span>
                                         </template>
-
-                                        <button
-                                            type="button"
-                                            @click="materiasPagina++"
-                                            :disabled="materiasPagina === totalPaginas"
-                                            class="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                                            title="Próxima página"
-                                        >
+                                        <button type="button" @click="materiasPagina++" :disabled="materiasPagina === totalPaginas" class="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors" title="Próxima página">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
                                         </button>
-                                        <button
-                                            type="button"
-                                            @click="materiasPagina = totalPaginas"
-                                            :disabled="materiasPagina === totalPaginas"
-                                            class="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                                            title="Última página"
-                                        >
+                                        <button type="button" @click="materiasPagina = totalPaginas" :disabled="materiasPagina === totalPaginas" class="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors" title="Última página">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M6 5l7 7-7 7" /></svg>
                                         </button>
                                     </div>

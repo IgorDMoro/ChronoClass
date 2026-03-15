@@ -129,6 +129,29 @@ const getProfessoresParaMateria = async (materiaId, slotId) => {
     }
 };
 
+// --- Validação de Disponibilidade do Professor ---
+const diaParaDisponibilidade = {
+    'SEGUNDA': 'segunda', 'TERÇA': 'terça', 'QUARTA': 'quarta',
+    'QUINTA': 'quinta', 'SEXTA': 'sexta', 'SABADO': 'sábado',
+};
+
+const professorDisponivelNoSlot = (professorId, dia, horario) => {
+    const prof = props.professores.find(p => p.id == professorId);
+    if (!prof?.disponibilidade) return true; // sem dados de disponibilidade = não bloquear
+    const diaKey = diaParaDisponibilidade[dia?.toUpperCase()] ?? dia?.toLowerCase();
+    return (prof.disponibilidade[diaKey] ?? []).includes(horario);
+};
+
+const getProfessoresDisponiveisNoSlot = (slotId, dia, horario) => {
+    const todos = filteredProfessores.value[slotId] || [];
+    return todos.filter(p => professorDisponivelNoSlot(p.id, dia, horario));
+};
+
+const getProfessoresIndisponiveisNoSlot = (slotId, dia, horario) => {
+    const todos = filteredProfessores.value[slotId] || [];
+    return todos.filter(p => !professorDisponivelNoSlot(p.id, dia, horario));
+};
+
 const checkForConflict = (aula, celula, slotId) => {
     const key = `${celula.dia_semana}-${celula.horario_bloco}-${slotId}`;
     if (!aula.professor_id) {
@@ -166,8 +189,12 @@ const addSlot = (celula) => {
 const removeSlot = (celula, slotIndex) => celula.slots.splice(slotIndex, 1);
 const setSlotType = (slot, type) => slot.type = type;
 
-const confirmSlot = (slot) => {
+const confirmSlot = (slot, dia, horario) => {
     if (slot.aula.materia_id && slot.aula.professor_id && slot.aula.sala) {
+        if (dia && horario && !professorDisponivelNoSlot(slot.aula.professor_id, dia, horario)) {
+            alert(`Este professor não está disponível em ${dia} no horário ${horario}. Por favor, selecione outro professor.`);
+            return;
+        }
         slot.confirmed = true;
         editingSlots.value.delete(slot.id);
         materiaNames.value[slot.id] = props.materias_presenciais.find(m => m.id == slot.aula.materia_id)?.nome || '';
@@ -424,6 +451,10 @@ const submit = () => {
                                                                         <div class="flex-1">
                                                                             <p class="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Matéria</p>
                                                                             <p class="text-sm font-bold text-gray-800 dark:text-gray-200">{{ materiaNames[slot.id] }}</p>
+                                                                                    <span class="inline-block mt-1 px-2 py-0.5 text-[10px] font-bold rounded-full":class="{'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300': slot.type === 'Engenharia de Software','bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-300': slot.type === 'Ciências da Computação', 'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300': slot.type === 'Ambos (Core)',
+                                                                                     'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-300': slot.type === 'Flex',}">
+                                                                                     {{ slot.type === 'Engenharia de Software' ? 'Eng. SW' : slot.type === 'Ciências da Computação' ? 'C. Comp' : slot.type === 'Ambos (Core)' ? 'Core' : 'Flex' }}
+                                                                                    </span>
                                                                         </div>
                                                                         <button @click="editSlot(slot)" type="button" class="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors" title="Editar">
                                                                             <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -485,8 +516,16 @@ const submit = () => {
                                                                 </div>                                                                <div v-if="loadingProfessores[`slot-${slot.id}`]" class="text-[10px] text-gray-500 dark:text-gray-400 italic">Carregando professores...</div>
                                                                 <select v-model="slot.aula.professor_id" @change="checkForConflict(slot.aula, gradeVisual[dia][hIndex], slot.id)" :disabled="!slot.aula.materia_id || loadingProfessores[`slot-${slot.id}`]" class="w-full rounded-md border-gray-300 dark:border-gray-300/40 dark:bg-neutral-700 dark:text-gray-200 text-xs px-2 py-1 disabled:bg-gray-100 dark:disabled:bg-neutral-800">
                                                                     <option value="" disabled>Professor</option>
-                                                                    <option v-for="prof in (filteredProfessores[slot.id] || [])" :key="prof.id" :value="prof.id">{{ prof.nome }}</option>
+                                                                    <optgroup v-if="getProfessoresDisponiveisNoSlot(slot.id, dia, gradeVisual[dia][hIndex].horario_bloco).length" label="✅ Disponíveis">
+                                                                        <option v-for="prof in getProfessoresDisponiveisNoSlot(slot.id, dia, gradeVisual[dia][hIndex].horario_bloco)" :key="prof.id" :value="prof.id">{{ prof.nome }}</option>
+                                                                    </optgroup>
+                                                                    <optgroup v-if="getProfessoresIndisponiveisNoSlot(slot.id, dia, gradeVisual[dia][hIndex].horario_bloco).length" label="⚠️ Indisponíveis">
+                                                                        <option v-for="prof in getProfessoresIndisponiveisNoSlot(slot.id, dia, gradeVisual[dia][hIndex].horario_bloco)" :key="prof.id" :value="prof.id">{{ prof.nome }}</option>
+                                                                    </optgroup>
                                                                 </select>
+                                                                <div v-if="slot.aula.professor_id && !professorDisponivelNoSlot(slot.aula.professor_id, dia, gradeVisual[dia][hIndex].horario_bloco)" class="text-[10px] text-red-600 dark:text-red-400 p-1 bg-red-100 dark:bg-red-500/10 rounded">
+                                                                    ⚠️ Professor sem disponibilidade neste horário.
+                                                                </div>
                                                                 <select v-model="slot.aula.sala" class="w-full rounded-md border-gray-300 dark:border-gray-300/40 dark:bg-neutral-700 dark:text-gray-200 text-xs px-2 py-1">
                                                                     <option value="" disabled>Sala</option>
                                                                     <option v-for="sala in props.salas" :key="sala.id" :value="sala.nome">{{ sala.nome }} (Cap: {{ sala.capacidade }})</option>
@@ -495,7 +534,7 @@ const submit = () => {
                                                                 <div v-if="conflictWarnings[`${gradeVisual[dia][hIndex].dia_semana}-${gradeVisual[dia][hIndex].horario_bloco}-${slot.id}`]" class="text-[10px] text-orange-600 dark:text-orange-400 p-1 bg-orange-100 dark:bg-orange-500/10 rounded">
                                                                     {{ conflictWarnings[`${gradeVisual[dia][hIndex].dia_semana}-${gradeVisual[dia][hIndex].horario_bloco}-${slot.id}`] }}
                                                                 </div>
-                                                                <button @click="confirmSlot(slot)" type="button" :disabled="!slot.aula.materia_id || !slot.aula.professor_id || !slot.aula.sala" class="w-full px-3 py-1.5 bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-xs font-semibold rounded-md transition-colors">
+                                                                <button @click="confirmSlot(slot, dia, gradeVisual[dia][hIndex].horario_bloco)" type="button" :disabled="!slot.aula.materia_id || !slot.aula.professor_id || !slot.aula.sala" class="w-full px-3 py-1.5 bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-xs font-semibold rounded-md transition-colors">
                                                                     ✓ Confirmar
                                                                 </button>
                                                             </div>

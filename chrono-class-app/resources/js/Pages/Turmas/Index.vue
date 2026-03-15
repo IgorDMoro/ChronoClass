@@ -57,7 +57,8 @@ const executeDelete = () => {
                                     <tr class="border-b border-gray-200 dark:border-neutral-700">
                                         <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider">Nome</th>
                                         <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider">Período</th>
-                                        <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider">Ano Letivo</th>
+                                        <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider">Ano de Entrada</th>
+                                        <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider">Bimestre de Entrada</th>
                                         <th scope="col" class="relative px-6 py-3">
                                             <span class="sr-only">Ações</span>
                                         </th>
@@ -67,7 +68,8 @@ const executeDelete = () => {
                                     <tr v-for="turma in turmas" :key="turma.id" class="border-b border-gray-200 dark:border-neutral-800 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors duration-150">
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-gray-200">{{ turma.nome }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">{{ turma.periodo }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">{{ turma.ano_letivo }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">{{ turma.ano_entrada }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">{{ turma.bimestre_entrada }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <div class="flex items-center justify-end gap-x-6">
                                                 <div class="relative group">
@@ -96,7 +98,7 @@ const executeDelete = () => {
                                         </td>
                                     </tr>
                                     <tr v-if="turmas.length === 0">
-                                        <td colspan="4" class="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
+                                        <td colspan="5" class="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
                                             Nenhuma turma cadastrada.
                                         </td>
                                     </tr>

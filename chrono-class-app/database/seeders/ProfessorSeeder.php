@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\Professor;
+use App\Models\ProfessorHorarioDisponivel;
 use Illuminate\Support\Str;
 
 class ProfessorSeeder extends Seeder
@@ -28,7 +29,12 @@ class ProfessorSeeder extends Seeder
             'Fernando Nakagawa', 'Gustavo Queiroz Silveira',
         ];
 
-        $matriculaInicial = 25001; // Matrícula inicial
+        $diasSemana = ['segunda', 'terça', 'quarta', 'quinta', 'sexta'];
+        $diasFimDeSemana = ['sábado'];
+        $horariosSemana = ['19:00-20:30', '20:45-22:15'];
+        $horariosFimDeSemana = ['08:00-09:30', '10:00-12:00'];
+
+        $matriculaInicial = 25001;
 
         foreach ($professores as $nomeCompleto) {
             $partesNome = explode(' ', $nomeCompleto);
@@ -36,19 +42,46 @@ class ProfessorSeeder extends Seeder
             $ultimoSobrenome = Str::slug(end($partesNome));
 
             $email = strtolower("{$primeiroNome}.{$ultimoSobrenome}@edu.unifil.br");
-            
-            // Gera um número de telefone aleatório no formato (43) 9XXXX-XXXX
             $telefone = '(43) 9' . rand(8000, 9999) . '-' . rand(1000, 9999);
 
-            Professor::create([
-                'nome' => $nomeCompleto,
-                'email' => $email,
-                'matricula' => (string) $matriculaInicial, // Converte para string para corresponder ao tipo da coluna
-                'telefone' => $telefone,
+            $professor = Professor::create([
+                'nome'      => $nomeCompleto,
+                'email'     => $email,
+                'matricula' => (string) $matriculaInicial,
+                'telefone'  => $telefone,
             ]);
 
-            $matriculaInicial++; // Incrementa para o próximo professor
+            // Gera disponibilidades aleatórias para dias da semana
+            // Cada professor fica disponível em pelo menos 2 e no máximo 4 dias
+            $diasDisponiveis = collect($diasSemana)->shuffle()->take(rand(2, 4));
+
+            foreach ($diasDisponiveis as $dia) {
+                // Para cada dia disponível, pode ter 1 ou os 2 blocos
+                $horariosDisponiveis = collect($horariosSemana)->shuffle()->take(rand(1, 2));
+
+                foreach ($horariosDisponiveis as $horario) {
+                    ProfessorHorarioDisponivel::create([
+                        'professor_id' => $professor->id,
+                        'dia_semana'   => $dia,
+                        'horario'      => $horario,
+                    ]);
+                }
+            }
+
+            // 40% de chance de ter disponibilidade no sábado
+            if (rand(1, 10) <= 4) {
+                $horariosSabado = collect($horariosFimDeSemana)->shuffle()->take(rand(1, 2));
+
+                foreach ($horariosSabado as $horario) {
+                    ProfessorHorarioDisponivel::create([
+                        'professor_id' => $professor->id,
+                        'dia_semana'   => 'sábado',
+                        'horario'      => $horario,
+                    ]);
+                }
+            }
+
+            $matriculaInicial++;
         }
     }
 }
-

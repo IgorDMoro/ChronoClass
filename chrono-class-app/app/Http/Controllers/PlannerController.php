@@ -23,6 +23,14 @@ class PlannerController extends Controller
             ->orderBy('bimestre')
             ->pluck('bimestre');
 
+        // Filtros de turma: ano_entrada e bimestre_entrada
+        $anosEntradaDisponiveis = \App\Models\Turma::whereNotNull('ano_entrada')
+            ->distinct()
+            ->orderByDesc('ano_entrada')
+            ->pluck('ano_entrada');
+
+        $bimestresEntradaDisponiveis = ['B1', 'B2', 'B3', 'B4'];
+
         $grades = null;
         if ($request->filled('ano') && $request->filled('bimestre')) {
             $grades = Grade::with([
@@ -32,16 +40,26 @@ class PlannerController extends Controller
             ])
             ->where('ano', $request->ano)
             ->where('bimestre', $request->bimestre)
+            ->when($request->filled('ano_entrada'), function ($q) use ($request) {
+                $q->whereHas('turma', fn($t) => $t->where('ano_entrada', $request->ano_entrada));
+            })
+            ->when($request->filled('bimestre_entrada'), function ($q) use ($request) {
+                $q->whereHas('turma', fn($t) => $t->where('bimestre_entrada', $request->bimestre_entrada));
+            })
             ->orderBy('nome')
             ->get();
         }
 
         return Inertia::render('Grades/Planner', [
-            'grades'               => $grades,
-            'ano'                  => $request->ano ? (int) $request->ano : null,
-            'bimestre'             => $request->bimestre ? (int) $request->bimestre : null,
-            'anosDisponiveis'      => $anosDisponiveis,
-            'bimestresDisponiveis' => $bimestresDisponiveis,
+            'grades'                       => $grades,
+            'ano'                          => $request->ano ? (int) $request->ano : null,
+            'bimestre'                     => $request->bimestre ? (int) $request->bimestre : null,
+            'anosDisponiveis'              => $anosDisponiveis,
+            'bimestresDisponiveis'         => $bimestresDisponiveis,
+            'anoEntrada'                   => $request->ano_entrada ? (int) $request->ano_entrada : null,
+            'bimestreEntrada'              => $request->bimestre_entrada ?? null,
+            'anosEntradaDisponiveis'       => $anosEntradaDisponiveis,
+            'bimestresEntradaDisponiveis'  => $bimestresEntradaDisponiveis,
         ]);
     }
 

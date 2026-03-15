@@ -46,6 +46,18 @@ const hasPendentes = computed(() => alteracoesPendentes.value.length > 0);
 // --- Modo de visualização ---
 const modoGrade = ref(false); // false = compacto, true = grade completa
 
+// --- Validação de Disponibilidade do Professor ---
+const diaParaDisponibilidade = {
+    'SEGUNDA': 'segunda', 'TERÇA': 'terça', 'QUARTA': 'quarta',
+    'QUINTA': 'quinta', 'SEXTA': 'sexta', 'SABADO': 'sábado',
+};
+
+const professorDisponivelNoSlot = (professor, dia, horario) => {
+    if (!professor?.disponibilidade) return true;
+    const diaKey = diaParaDisponibilidade[dia?.toUpperCase()] ?? dia?.toLowerCase();
+    return (professor.disponibilidade[diaKey] ?? []).includes(horario);
+};
+
 // --- Drag and drop ---
 const dragInfo   = ref(null);  // { horarioId, fromGradeId }
 const dropTarget = ref(null);  // { gradeId, dia?, bloco? } — slot específico no modo grade
@@ -104,6 +116,12 @@ const onDrop = (toGradeId, targetDia = null, targetBloco = null) => {
     // Mesma grade + mesmo slot = noop
     if (fromGradeId === toGradeId && diaDest === horario.dia_semana && blocoDest === horario.horario_bloco) return;
 
+    // Verifica disponibilidade do professor arrastado no slot destino
+    if (horario.professor && !professorDisponivelNoSlot(horario.professor, diaDest, blocoDest)) {
+        alert(`${horario.professor.nome} não está disponível em ${diaDest} no horário ${blocoDest}.`);
+        return;
+    }
+
     // Horários que ocupam o slot de destino
     const slotDestino = toGrade.horarios.filter(h =>
         h.dia_semana    === diaDest &&
@@ -132,6 +150,11 @@ const onDrop = (toGradeId, targetDia = null, targetBloco = null) => {
             );
             if (conflitoOrigem) {
                 alert(`Conflito! ${h.professor?.nome} já está nesse slot em "${fromGrade.nome}".`);
+                return;
+            }
+            // Verifica disponibilidade dos professores do destino no slot de origem
+            if (h.professor && !professorDisponivelNoSlot(h.professor, horario.dia_semana, horario.horario_bloco)) {
+                alert(`${h.professor.nome} não está disponível em ${horario.dia_semana} no horário ${horario.horario_bloco}.`);
                 return;
             }
         }
@@ -423,6 +446,13 @@ const cardCor = (horario) => {
                                         >
                                             <p class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ diaLabel(dia) }} · {{ blocoLabel(bloco) }}</p>
                                             <p class="text-xs font-semibold text-gray-800 dark:text-gray-200 leading-snug mt-0.5">{{ horario.materia?.nome || '—' }}</p>
+                                            <span class="inline-block mt-0.5 px-1.5 py-0.5 text-[9px] font-bold rounded-full"
+                                            :class="{'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300': horario.tipo_aula?.includes('Engenharia'),
+                                            'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-300': horario.tipo_aula?.includes('Ciências'),
+                                            'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300': horario.tipo_aula?.includes('Ambos') || horario.tipo_aula?.includes('Core'),
+                                            'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-300': horario.tipo_aula?.includes('Flex'),
+                                            'bg-gray-100 dark:bg-neutral-700 text-gray-500 dark:text-gray-400': !horario.tipo_aula,}">{{ horario.tipo_aula?.includes('Engenharia') ? 'Eng. SW' : horario.tipo_aula?.includes('Ciências') ? 'C. Comp' : horario.tipo_aula?.includes('Flex') ? 'Flex' : 'Core' }}
+                                            </span>
                                             <p class="text-[10px] text-gray-500 dark:text-gray-400 truncate">{{ horario.professor?.nome || '—' }}</p>
                                             <p v-if="horario.sala" class="text-[10px] text-gray-400 dark:text-gray-500">🚪 {{ horario.sala }}</p>
                                         </div>
@@ -440,6 +470,9 @@ const cardCor = (horario) => {
                                         >
                                             <p class="text-[10px] font-bold text-gray-500 uppercase">{{ diaLabel(horario.dia_semana) }}</p>
                                             <p class="text-xs font-semibold text-gray-800 dark:text-gray-200">{{ horario.materia?.nome || '—' }}</p>
+                                            <span class="inline-block mt-0.5 px-1.5 py-0.5 text-[9px] font-bold rounded-full":class="{'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300': horario.tipo_aula?.includes('Engenharia'),'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-300': horario.tipo_aula?.includes('Ciências'),'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300': horario.tipo_aula?.includes('Ambos') || horario.tipo_aula?.includes('Core'),'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-300': horario.tipo_aula?.includes('Flex'),'bg-gray-100 dark:bg-neutral-700 text-gray-500 dark:text-gray-400': !horario.tipo_aula,}">
+                                             {{ horario.tipo_aula?.includes('Engenharia') ? 'Eng. SW' : horario.tipo_aula?.includes('Ciências') ? 'C. Comp' : horario.tipo_aula?.includes('Flex') ? 'Flex' : 'Core' }}
+                                            </span>
                                             <p class="text-[10px] text-gray-500 dark:text-gray-400 truncate">{{ horario.professor?.nome || '—' }}</p>
                                         </div>
                                     </div>

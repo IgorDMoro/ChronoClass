@@ -15,17 +15,13 @@ class Turma extends Model
      *
      * @var array<int, string>
      */
-    // 2. Corrigir os campos para corresponder à migration e ao controller
     protected $fillable = [
         'nome',
         'periodo',
-        'ano_letivo',
+        'ano_entrada',
+        'bimestre_entrada',
     ];
 
-    /**
-     * Get the grade_horarios for the turma.
-     */
-    // 3. Corrigir o método do relacionamento para hasMany
     public function gradeHorarios(): HasMany
     {
         return $this->hasMany(GradeHorario::class);
