@@ -239,8 +239,17 @@ const editSlot = (slot) => {
     editingSlots.value.add(slot.id);
 };
 
-const addFlexAula = (slot) => slot.flex_aulas.push({ id: Date.now(), professor_id: '', materia_id: '', sala: '', classroom_code: '' });
+const addFlexAula = (slot) => slot.flex_aulas.push({ id: Date.now(), professor_id: '', materia_id: '', sala: '', classroom_code: '', confirmed: false, materiaName: '', professorName: '' });
 const removeFlexAula = (slot, flexIndex) => slot.flex_aulas.splice(flexIndex, 1);
+const confirmFlexAula = (slot, fIndex) => {
+    const fa = slot.flex_aulas[fIndex];
+    if (fa.materia_id && fa.professor_id && fa.sala) {
+        fa.confirmed = true;
+        fa.materiaName = props.materias_presenciais.find(m => m.id == fa.materia_id)?.nome || '';
+        fa.professorName = props.professores.find(p => p.id == fa.professor_id)?.nome || '';
+    }
+};
+const editFlexAula = (fa) => { fa.confirmed = false; };
 
 const addUcd = () => gradeUcd.value.push({ dia_semana: 'ATIVIDADE_DIGITAL', horario_bloco: 'N/A', materia_id: '', professor_id: '', sala: '', classroom_code: '' });
 const removeUcd = (index) => gradeUcd.value.splice(index, 1);
@@ -279,7 +288,7 @@ const submit = () => {
                         if (flexAula.materia_id && flexAula.professor_id) horariosPreenchidos.push({ ...aulaBase, ...flexAula });
                     });
                 } else if (slot.type && slot.aula.materia_id && slot.aula.professor_id) {
-                    horariosPreenchidos.push({ ...aulaBase, ...slot.aula });
+                    horariosPreenchidos.push({ ...aulaBase, ...slot.aula, tipo_slot: slot.type });
                 }
             });
         });
@@ -462,8 +471,8 @@ onMounted(() => {
                             </div>
 
                             <!-- Grade de Horários -->
-                            <div class="overflow-x-auto" style="overflow: visible;">
-                                <table class="w-full table-fixed border-collapse text-xs" style="overflow: visible;">
+                            <div class="overflow-x-auto">
+                                <table class="w-full table-fixed border-collapse text-xs">
                                     <thead class="bg-gray-100 dark:bg-neutral-800">
                                         <tr>
                                             <th class="border border-gray-300 dark:border-neutral-700 p-2 font-semibold text-gray-600 dark:text-gray-300 w-[10%]">Horário</th>
@@ -473,7 +482,7 @@ onMounted(() => {
                                     <tbody class="bg-white dark:bg-zinc-900">
                                         <tr v-for="(bloco, hIndex) in horariosBlocos" :key="hIndex">
                                             <td class="border border-gray-300 dark:border-neutral-700 p-2 font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-neutral-800 text-center align-middle">{{ bloco.replace('-', ' - ') }}</td>
-                                            <td v-for="dia in diasDaSemana" :key="dia + hIndex" class="border border-gray-300 dark:border-neutral-700 p-1 align-top overflow-hidden">
+                                            <td v-for="dia in diasDaSemana" :key="dia + hIndex" class="border border-gray-300 dark:border-neutral-700 p-1 align-top overflow-hidden max-w-0">
                                                 <div class="space-y-2 h-full flex flex-col min-w-0">
                                                     <div v-for="(slot, sIndex) in gradeVisual[dia][hIndex].slots" :key="slot.id" class="bg-gray-50 dark:bg-neutral-800 p-1.5 rounded-md border border-gray-200 dark:border-neutral-700 relative flex-1 flex flex-col min-w-0">
                                                         <button @click="removeSlot(gradeVisual[dia][hIndex], sIndex)" type="button" class="absolute -top-1.5 -right-1.5 bg-red-500 dark:bg-red-600 text-white rounded-full h-4 w-4 text-xs flex items-center justify-center font-bold">&times;</button>
@@ -576,10 +585,24 @@ onMounted(() => {
 
                                                             <div v-if="slot.type === 'Flex'" class="space-y-1.5">
                                                                 <p class="text-[11px] font-bold text-yellow-800 dark:text-yellow-400 text-center">Flex</p>
-                                                                <div v-for="(flexAula, fIndex) in slot.flex_aulas" :key="flexAula.id" class="space-y-1.5 border-t border-gray-300 dark:border-neutral-700 pt-1.5">
-                                                                    <div class="flex gap-1.5 items-start">
-                                                                        <div class="flex-1 space-y-1.5">
-                                                                            <!-- Busca inline de matéria flex -->
+                                                                <div v-for="(flexAula, fIndex) in slot.flex_aulas" :key="flexAula.id" class="border-t border-gray-300 dark:border-neutral-700 pt-1.5">
+                                                                    <!-- Card confirmado -->
+                                                                    <div v-if="flexAula.confirmed" class="bg-white dark:bg-neutral-900 rounded border border-yellow-300 dark:border-yellow-500/40 p-2 flex justify-between items-start gap-1">
+                                                                        <div class="flex-1 min-w-0 space-y-0.5">
+                                                                            <p class="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">{{ flexAula.materiaName }}</p>
+                                                                            <p class="text-[10px] text-gray-500 dark:text-gray-400 truncate">{{ flexAula.professorName }}</p>
+                                                                            <p class="text-[10px] text-gray-500 dark:text-gray-400 truncate">{{ flexAula.sala }}</p>
+                                                                        </div>
+                                                                        <div class="flex gap-1 shrink-0">
+                                                                            <button @click="editFlexAula(flexAula)" type="button" class="p-1 rounded hover:bg-gray-100 dark:hover:bg-neutral-700">
+                                                                                <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                                                            </button>
+                                                                            <button @click="removeFlexAula(slot, fIndex)" type="button" class="p-1 rounded hover:bg-red-100 dark:hover:bg-red-500/20 text-red-500">&times;</button>
+                                                                        </div>
+                                                                    </div>
+                                                                    <!-- Formulário edição -->
+                                                                    <div v-else class="flex gap-1.5 items-start">
+                                                                        <div class="flex-1 space-y-1.5 min-w-0">
                                                                             <div class="space-y-1">
                                                                                 <input
                                                                                     type="text"
@@ -611,11 +634,12 @@ onMounted(() => {
                                                                                 <option v-for="sala in props.salas" :key="sala.id" :value="sala.nome">{{ sala.nome }} (Cap: {{ sala.capacidade }})</option>
                                                                             </select>
                                                                             <TextInput type="text" v-model="flexAula.classroom_code" placeholder="Classroom" class="text-xs w-full dark:bg-neutral-700 dark:border-gray-300/40 dark:text-gray-200" />
+                                                                            <button @click="confirmFlexAula(slot, fIndex)" type="button" :disabled="!flexAula.materia_id || !flexAula.professor_id || !flexAula.sala" class="w-full px-3 py-1.5 bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-xs font-semibold rounded-md transition-colors">✓ Confirmar</button>
                                                                         </div>
                                                                         <button @click="removeFlexAula(slot, fIndex)" type="button" class="text-red-500 dark:text-red-400 font-bold p-0.5 rounded-full hover:bg-red-100 dark:hover:bg-red-500/20 mt-1">&times;</button>
                                                                     </div>
                                                                 </div>
-                                                                <button @click="addFlexAula(slot)" type="button" class="w-full text-center text-xs py-1 bg-yellow-100 dark:bg-yellow-500/20 text-yellow-800 dark:text-yellow-400 rounded hover:bg-yellow-200 dark:hover:bg-yellow-500/30">+</button>
+                                                                <button @click="addFlexAula(slot)" type="button" class="w-full text-center text-xs py-1 bg-yellow-100 dark:bg-yellow-500/20 text-yellow-800 dark:text-yellow-400 rounded hover:bg-yellow-200 dark:hover:bg-yellow-500/30 mt-1">+</button>
                                                             </div>
                                                         </div>
                                                     </div>
