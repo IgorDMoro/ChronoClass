@@ -19,6 +19,7 @@ class Horario extends Model
         'horario_bloco',
         'sala',
         'classroom_code',
+        'tipo_slot',
     ];
 
     public function grade()

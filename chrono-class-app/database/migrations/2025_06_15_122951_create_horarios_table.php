@@ -4,7 +4,6 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-// Classe nomeada corretamente
 class CreateHorariosTable extends Migration
 {
     public function up(): void
@@ -18,6 +17,7 @@ class CreateHorariosTable extends Migration
             $table->string('horario_bloco');
             $table->string('sala')->nullable();
             $table->string('classroom_code')->nullable();
+            $table->string('tipo_slot')->nullable();
             $table->timestamps();
         });
     }
@@ -26,4 +26,4 @@ class CreateHorariosTable extends Migration
     {
         Schema::dropIfExists('horarios');
     }
-};
+}

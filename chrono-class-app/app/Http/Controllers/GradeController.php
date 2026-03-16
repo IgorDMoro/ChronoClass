@@ -31,8 +31,13 @@ class GradeController extends Controller
         return Inertia::render('Grades/Create', [
             'materias_presenciais' => Materia::where('modalidade', 'Presencial')->whereHas('professores')->get(),
             'materias_ucd'         => Materia::where('modalidade', 'UCD')->whereHas('professores')->get(),
+            // Matérias flex: comp_tipo e ensw_tipo ambos 'Flex'
+            'materias_flex'        => Materia::where('modalidade', 'Presencial')
+                                        ->where('comp_tipo', 'Flex')
+                                        ->where('ensw_tipo', 'Flex')
+                                        ->whereHas('professores')
+                                        ->get(),
             'professores'          => Professor::with(['materias', 'horariosDisponiveisPivot'])->get(),
-            // Passa todos os horários existentes com bimestre/ano da grade — o frontend filtra pelo período selecionado
             'existingHorarios'     => Horario::with('grade:id,nome,bimestre,ano')
                                         ->select('dia_semana', 'horario_bloco', 'professor_id', 'grade_id')
                                         ->get(),
@@ -61,20 +66,29 @@ class GradeController extends Controller
         ]);
 
         try {
-            DB::transaction(function () use ($validated) {
+            $horarios = $request->input('horarios', []);
+            DB::transaction(function () use ($validated, $horarios) {
                 $turma = Turma::findOrFail($validated['turma_id']);
 
                 $grade = Grade::create([
-                    'nome'      => $turma->nome . ' — ' . $turma->semestre,
-                    'curso'     => $validated['curso'],
-                    'turma_id'  => $validated['turma_id'],
-                    'bimestre'  => $validated['bimestre'],
-                    'ano'       => $validated['ano'],
+                    'nome'     => $turma->nome . ' — ' . $turma->periodo,
+                    'curso'    => $validated['curso'],
+                    'turma_id' => $validated['turma_id'],
+                    'bimestre' => $validated['bimestre'],
+                    'ano'      => $validated['ano'],
                 ]);
 
-                foreach ($validated['horarios'] as $horarioData) {
-                    $horarioData['grade_id'] = $grade->id;
-                    Horario::create($horarioData);
+                foreach ($horarios as $horarioData) {
+                    Horario::create([
+                        'grade_id'      => $grade->id,
+                        'materia_id'    => $horarioData['materia_id'],
+                        'professor_id'  => $horarioData['professor_id'],
+                        'dia_semana'    => $horarioData['dia_semana'],
+                        'horario_bloco' => $horarioData['horario_bloco'],
+                        'sala'          => $horarioData['sala'] ?? null,
+                        'classroom_code'=> $horarioData['classroom_code'] ?? null,
+                        'tipo_slot'     => $horarioData['tipo_slot'] ?? null,
+                    ]);
                 }
             });
 
@@ -100,11 +114,15 @@ class GradeController extends Controller
             'existingHorarios'     => $grade->horarios()->get(),
             'materias_presenciais' => Materia::where('modalidade', 'Presencial')->whereHas('professores')->get(),
             'materias_ucd'         => Materia::where('modalidade', 'UCD')->whereHas('professores')->get(),
+            'materias_flex'        => Materia::where('modalidade', 'Presencial')
+                                        ->where('comp_tipo', 'Flex')
+                                        ->where('ensw_tipo', 'Flex')
+                                        ->whereHas('professores')
+                                        ->get(),
             'professores'          => Professor::with(['materias'])->get(),
             'salas'                => Sala::all(),
             'turmas'               => Turma::all(),
             'anoAtual'             => now()->year,
-            // Para o edit, passa os horários de outras grades do mesmo período para validar conflitos
             'existingHorariosOutrasGrades' => Horario::with('grade:id,nome,bimestre,ano')
                 ->select('dia_semana', 'horario_bloco', 'professor_id', 'grade_id')
                 ->whereHas('grade', fn($q) => $q
@@ -128,22 +146,31 @@ class GradeController extends Controller
         ]);
 
         try {
-            DB::transaction(function () use ($validated, $grade) {
+            $horarios = $request->input('horarios', []);
+            DB::transaction(function () use ($validated, $grade, $horarios) {
                 $turma = Turma::findOrFail($validated['turma_id']);
 
                 $grade->update([
-                    'nome'      => $turma->nome . ' — ' . $turma->semestre,
-                    'curso'     => $validated['curso'],
-                    'turma_id'  => $validated['turma_id'],
-                    'bimestre'  => $validated['bimestre'],
-                    'ano'       => $validated['ano'],
+                    'nome'     => $turma->nome . ' — ' . $turma->periodo,
+                    'curso'    => $validated['curso'],
+                    'turma_id' => $validated['turma_id'],
+                    'bimestre' => $validated['bimestre'],
+                    'ano'      => $validated['ano'],
                 ]);
 
                 $grade->horarios()->delete();
 
-                foreach ($validated['horarios'] as $horarioData) {
-                    $horarioData['grade_id'] = $grade->id;
-                    Horario::create($horarioData);
+                foreach ($horarios as $horarioData) {
+                    Horario::create([
+                        'grade_id'      => $grade->id,
+                        'materia_id'    => $horarioData['materia_id'],
+                        'professor_id'  => $horarioData['professor_id'],
+                        'dia_semana'    => $horarioData['dia_semana'],
+                        'horario_bloco' => $horarioData['horario_bloco'],
+                        'sala'          => $horarioData['sala'] ?? null,
+                        'classroom_code'=> $horarioData['classroom_code'] ?? null,
+                        'tipo_slot'     => $horarioData['tipo_slot'] ?? null,
+                    ]);
                 }
             });
 
@@ -165,17 +192,16 @@ class GradeController extends Controller
         ]);
 
         try {
-            DB::transaction(function () use ($validated, $grade) {
+            $horarios = $request->input('horarios', []);
+            DB::transaction(function () use ($validated, $grade, $horarios) {
                 $turma = Turma::findOrFail($validated['turma_id']);
 
-                // IDs de outras grades no mesmo bimestre/ano (excluindo a grade atual)
                 $outrasGradesIds = Grade::where('bimestre', $validated['bimestre'])
                     ->where('ano', $validated['ano'])
                     ->where('id', '!=', $grade->id)
                     ->pluck('id');
 
-                // Valida conflito de professor: mesmo dia+bloco+professor em outra grade do mesmo período
-                foreach ($validated['horarios'] as $horarioData) {
+                foreach ($horarios as $horarioData) {
                     if (empty($horarioData['professor_id'])) continue;
 
                     $conflito = Horario::whereIn('grade_id', $outrasGradesIds)
@@ -194,18 +220,26 @@ class GradeController extends Controller
                 }
 
                 $grade->update([
-                    'nome'      => $turma->nome . ' — ' . $turma->semestre,
-                    'curso'     => $validated['curso'],
-                    'turma_id'  => $validated['turma_id'],
-                    'bimestre'  => $validated['bimestre'],
-                    'ano'       => $validated['ano'],
+                    'nome'     => $turma->nome . ' — ' . $turma->periodo,
+                    'curso'    => $validated['curso'],
+                    'turma_id' => $validated['turma_id'],
+                    'bimestre' => $validated['bimestre'],
+                    'ano'      => $validated['ano'],
                 ]);
 
                 $grade->horarios()->delete();
 
-                foreach ($validated['horarios'] as $horarioData) {
-                    $horarioData['grade_id'] = $grade->id;
-                    Horario::create($horarioData);
+                foreach ($horarios as $horarioData) {
+                    Horario::create([
+                        'grade_id'      => $grade->id,
+                        'materia_id'    => $horarioData['materia_id'],
+                        'professor_id'  => $horarioData['professor_id'],
+                        'dia_semana'    => $horarioData['dia_semana'],
+                        'horario_bloco' => $horarioData['horario_bloco'],
+                        'sala'          => $horarioData['sala'] ?? null,
+                        'classroom_code'=> $horarioData['classroom_code'] ?? null,
+                        'tipo_slot'     => $horarioData['tipo_slot'] ?? null,
+                    ]);
                 }
             });
 

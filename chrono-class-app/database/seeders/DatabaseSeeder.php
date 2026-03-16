@@ -6,6 +6,7 @@ use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
+
 use function Laravel\Prompts\password;
 
 class DatabaseSeeder extends Seeder
@@ -23,7 +24,8 @@ class DatabaseSeeder extends Seeder
             'password' => 'password',
         ]);
         $this->call([
-                ProfessorSeeder::class
+                ProfessorSeeder::class,
+                SalaSeeder::class
         ]);
     }
 }

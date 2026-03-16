@@ -278,6 +278,7 @@ const submit = () => {
     form.post(route('grades.store'), {
         onError: (errors) => {
             console.error('Erros ao salvar grade:', errors);
+            if (errors.error) alert('Erro: ' + errors.error);
         },
     });
 };
@@ -427,8 +428,8 @@ const submit = () => {
                             </div>
 
                             <!-- Grade de Horários -->
-                            <div class="overflow-x-auto">
-                                <table class="w-full table-fixed border-collapse text-xs">
+                            <div class="overflow-x-auto" style="overflow: visible;">
+                                <table class="w-full table-fixed border-collapse text-xs" style="overflow: visible;">
                                     <thead class="bg-gray-100 dark:bg-neutral-800">
                                         <tr>
                                             <th class="border border-gray-300 dark:border-neutral-700 p-2 font-semibold text-gray-600 dark:text-gray-300 w-[10%]">Horário</th>
@@ -453,7 +454,7 @@ const submit = () => {
                                                                             <p class="text-sm font-bold text-gray-800 dark:text-gray-200">{{ materiaNames[slot.id] }}</p>
                                                                                     <span class="inline-block mt-1 px-2 py-0.5 text-[10px] font-bold rounded-full":class="{'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300': slot.type === 'Engenharia de Software','bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-300': slot.type === 'Ciências da Computação', 'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300': slot.type === 'Ambos (Core)',
                                                                                      'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-300': slot.type === 'Flex',}">
-                                                                                     {{ slot.type === 'Engenharia de Software' ? 'Eng. SW' : slot.type === 'Ciências da Computação' ? 'C. Comp' : slot.type === 'Ambos (Core)' ? 'Core' : 'Flex' }}
+                                                                                     {{ slot.type === 'Engenharia de Software' ? 'Eng. SW' : slot.type === 'Ciências da Computação' ? 'C. Comp' : slot.type === 'Ambos (Core)' ? 'Ambos' : 'Flex' }}
                                                                                     </span>
                                                                         </div>
                                                                         <button @click="editSlot(slot)" type="button" class="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors" title="Editar">
@@ -668,6 +669,9 @@ const submit = () => {
                             </div>
 
                             <div class="flex items-center justify-end mt-8 pt-6 border-t border-gray-200 dark:border-neutral-700">
+                                <div v-if="form.errors.error" class="mr-auto text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-md px-3 py-2">
+                                    ⚠️ {{ form.errors.error }}
+                                </div>
                                 <Link :href="route('grades.index')" class="inline-flex items-center px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-md font-semibold text-xs text-gray-800 dark:text-gray-300 uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-neutral-700 focus:outline-none">
                                     Cancelar
                                 </Link>
