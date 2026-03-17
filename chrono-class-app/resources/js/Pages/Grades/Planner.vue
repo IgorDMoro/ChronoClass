@@ -100,6 +100,47 @@ const isDropTarget = (gradeId, dia = null, bloco = null) => {
     return !dropTarget.value.dia; // modo compacto: highlight coluna inteira
 };
 
+// --- Validação de compatibilidade de tipo no slot ---
+// tipo_slot values: 'Ambos (Core)', 'Engenharia de Software', 'Ciências da Computação', 'Flex'
+const getTipoSlot = (h) => h.tipo_slot || h.tipo_aula || '';
+
+const isAmbos  = (h) => getTipoSlot(h).includes('Ambos') || getTipoSlot(h).includes('Core');
+const isEnsw   = (h) => getTipoSlot(h).includes('Engenharia');
+const isCC     = (h) => getTipoSlot(h).includes('Ciências');
+const isFlex   = (h) => getTipoSlot(h).includes('Flex');
+
+// Retorna mensagem de erro se `entrando` não pode coexistir com `ocupantes`, ou null se ok
+const validarTipoNoSlot = (entrando, ocupantes) => {
+    if (ocupantes.length === 0) return null;
+
+    // Ambos não pode entrar em slot já ocupado
+    if (isAmbos(entrando)) {
+        return `"Ambos" deve ficar sozinho no slot — já há ${ocupantes.length} aula(s) neste horário.`;
+    }
+
+    // Ninguém pode entrar em slot que já tem Ambos
+    if (ocupantes.some(isAmbos)) {
+        return `Este slot tem uma aula "Ambos" que deve ficar sozinha.`;
+    }
+
+    const temEnsw = ocupantes.some(isEnsw);
+    const temCC   = ocupantes.some(isCC);
+    const temFlex = ocupantes.some(isFlex);
+
+    // Só pode ter 1 ENSW e 1 CC por slot
+    if (isEnsw(entrando) && temEnsw) return `Já existe uma aula Eng.SW neste slot.`;
+    if (isCC(entrando)   && temCC)   return `Já existe uma aula C.Comp neste slot.`;
+
+    // Flex não pode entrar se já tem ENSW + CC
+    if (isFlex(entrando) && temEnsw && temCC) return `Flex não pode entrar: slot já tem Eng.SW e C.Comp juntos.`;
+
+    // ENSW ou CC não pode entrar se já tem Flex + a outra
+    if (isEnsw(entrando) && temFlex && temCC) return `Não permitido: slot já tem Flex + C.Comp.`;
+    if (isCC(entrando)   && temFlex && temEnsw) return `Não permitido: slot já tem Flex + Eng.SW.`;
+
+    return null;
+};
+
 const onDrop = (toGradeId, targetDia = null, targetBloco = null) => {
     dropTarget.value = null;
     if (!dragInfo.value) return;
@@ -134,49 +175,35 @@ const onDrop = (toGradeId, targetDia = null, targetBloco = null) => {
     );
 
     if (slotDestino.length > 0) {
-        // ── SWAP ──
-        const conflitoEntrada = toGrade.horarios.find(h =>
-            h.dia_semana    === diaDest &&
-            h.horario_bloco === blocoDest &&
-            h.professor_id  === horario.professor_id &&
-            !slotDestino.find(s => s.id === h.id)
+
+        // Slot origem (o que ficaria lá após remover o horário arrastado)
+        const slotOrigem = fromGrade.horarios.filter(h =>
+            h.dia_semana    === horario.dia_semana &&
+            h.horario_bloco === horario.horario_bloco &&
+            h.id !== horarioId
         );
-        if (conflitoEntrada) {
-            alert(`Conflito! ${horario.professor?.nome} já está nesse slot em "${toGrade.nome}".`);
+
+        // Valida tipo: horario entrando no destino
+        const erroTipoDestino = validarTipoNoSlot(horario, slotDestino);
+        if (erroTipoDestino) { alert(erroTipoDestino); return; }
+
+        // Conflito de professor no destino
+        const conflitoProf = slotDestino.find(h => h.professor_id === horario.professor_id);
+        if (conflitoProf) {
+            alert(`Conflito! ${horario.professor?.nome} já está nesse horário em "${toGrade.nome}".`);
             return;
         }
 
-        for (const h of slotDestino) {
-            const conflitoOrigem = fromGrade.horarios.find(hf =>
-                hf.dia_semana    === horario.dia_semana &&
-                hf.horario_bloco === horario.horario_bloco &&
-                hf.professor_id  === h.professor_id &&
-                hf.id !== horarioId
-            );
-            if (conflitoOrigem) {
-                alert(`Conflito! ${h.professor?.nome} já está nesse slot em "${fromGrade.nome}".`);
-                return;
-            }
-            // Verifica disponibilidade dos professores do destino no slot de origem
-            if (h.professor && !professorDisponivelNoSlot(h.professor, horario.dia_semana, horario.horario_bloco)) {
-                alert(`${h.professor.nome} não está disponível em ${horario.dia_semana} no horário ${horario.horario_bloco}.`);
-                return;
-            }
+        // Disponibilidade no destino
+        if (horario.professor && !professorDisponivelNoSlot(horario.professor, diaDest, blocoDest)) {
+            alert(`${horario.professor.nome} não está disponível em ${diaDest} no horário ${blocoDest}.`);
+            return;
         }
 
-        // Swap: os do destino vão para o dia/bloco original do arrastado
+        // Sempre move simples — só entra no slot se compatível
         fromGrade.horarios.splice(horarioIdx, 1);
-        slotDestino.forEach(h => {
-            const idx = toGrade.horarios.findIndex(hh => hh.id === h.id);
-            if (idx !== -1) toGrade.horarios.splice(idx, 1);
-            fromGrade.horarios.push({ ...h, dia_semana: horario.dia_semana, horario_bloco: horario.horario_bloco });
-        });
         toGrade.horarios.push({ ...horario, dia_semana: diaDest, horario_bloco: blocoDest });
-
         registrarPendente({ ...horario, dia_semana: diaDest, horario_bloco: blocoDest }, fromGradeId, fromGrade.nome, toGradeId, toGrade.nome);
-        slotDestino.forEach(h =>
-            registrarPendente({ ...h, dia_semana: horario.dia_semana, horario_bloco: horario.horario_bloco }, toGradeId, toGrade.nome, fromGradeId, fromGrade.nome)
-        );
 
     } else {
         // ── MOVE SIMPLES para slot vazio ──
@@ -475,6 +502,15 @@ const cardCor = (horario) => {
                                                 :class="cardCor(horario)"
                                             >
                                                 <p class="text-xs font-semibold text-gray-800 dark:text-gray-200 leading-snug">{{ horario.materia?.nome || '—' }}</p>
+                                                <span class="inline-block mt-0.5 px-1.5 py-0.5 text-[9px] font-bold rounded-full"
+                                                    :class="{
+                                                        'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300':   isEnsw(horario),
+                                                        'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-300': isCC(horario),
+                                                        'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300': isAmbos(horario),
+                                                        'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-300': isFlex(horario),
+                                                        'bg-gray-100 dark:bg-neutral-700 text-gray-500 dark:text-gray-400': !getTipoSlot(horario),
+                                                    }"
+                                                >{{ isEnsw(horario) ? 'Eng. SW' : isCC(horario) ? 'C. Comp' : isFlex(horario) ? 'Flex' : isAmbos(horario) ? 'Ambos' : '—' }}</span>
                                                 <p class="text-[10px] text-gray-500 dark:text-gray-400 truncate">{{ horario.professor?.nome || '—' }}</p>
                                                 <p v-if="horario.sala" class="text-[10px] text-gray-400 dark:text-gray-500">🚪 {{ horario.sala }}</p>
                                             </div>
