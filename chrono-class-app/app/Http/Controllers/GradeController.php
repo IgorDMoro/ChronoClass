@@ -263,4 +263,76 @@ class GradeController extends Controller
 
         return back();
     }
-}
+
+    public function planner(Request $request)
+    {
+        $ano             = $request->integer('ano')      ?: null;
+        $bimestre        = $request->integer('bimestre') ?: null;
+        $anoEntrada      = $request->input('ano_entrada')      ?: null;
+        $bimestreEntrada = $request->input('bimestre_entrada') ?: null;
+
+        $grades = null;
+
+        if ($ano && $bimestre) {
+            $query = Grade::with([
+                'turma',
+                'horarios.materia',
+                'horarios.professor',
+            ])
+            ->where('ano', $ano)
+            ->where('bimestre', $bimestre);
+
+            if ($anoEntrada) {
+                $query->whereHas('turma', fn($q) => $q->where('ano_entrada', $anoEntrada));
+            }
+
+            if ($bimestreEntrada) {
+                $query->whereHas('turma', fn($q) => $q->where('bimestre_entrada', $bimestreEntrada));
+            }
+
+            $grades = $query->orderBy('nome')->get();
+        }
+
+        // Valores disponíveis para os selects de período da grade
+        $anosDisponiveis      = Grade::distinct()->orderBy('ano', 'desc')->pluck('ano');
+        $bimestresDisponiveis = Grade::when($ano, fn($q) => $q->where('ano', $ano))
+            ->distinct()->orderBy('bimestre')->pluck('bimestre');
+
+        // Valores disponíveis para os filtros de entrada da turma
+        $anosEntradaDisponiveis      = Turma::distinct()->orderBy('ano_entrada', 'desc')->pluck('ano_entrada');
+        $bimestresEntradaDisponiveis = Turma::distinct()->orderBy('bimestre_entrada')->pluck('bimestre_entrada');
+
+        return Inertia::render('Grades/Planner', [
+            'grades'                       => $grades,
+            'ano'                          => $ano,
+            'bimestre'                     => $bimestre,
+            'anoEntrada'                   => $anoEntrada,
+            'bimestreEntrada'              => $bimestreEntrada,
+            'anosDisponiveis'              => $anosDisponiveis,
+            'bimestresDisponiveis'         => $bimestresDisponiveis,
+            'anosEntradaDisponiveis'       => $anosEntradaDisponiveis,
+            'bimestresEntradaDisponiveis'  => $bimestresEntradaDisponiveis,
+        ]);
+    }
+
+    public function plannerSalvar(Request $request)
+    {
+        $request->validate([
+            'alteracoes'                => 'required|array',
+            'alteracoes.*.horario_id'   => 'required|exists:horarios,id',
+            'alteracoes.*.para_grade_id'=> 'required|exists:grades,id',
+        ]);
+
+        DB::transaction(function () use ($request) {
+            foreach ($request->alteracoes as $alt) {
+                $horario = Horario::findOrFail($alt['horario_id']);
+                $horario->update([
+                    'grade_id'      => $alt['para_grade_id'],
+                    'dia_semana'    => $alt['dia_semana']    ?? $horario->dia_semana,
+                    'horario_bloco' => $alt['horario_bloco'] ?? $horario->horario_bloco,
+                ]);
+            }
+        });
+
+        return back()->with('success', 'Alterações salvas com sucesso!');
+    }}

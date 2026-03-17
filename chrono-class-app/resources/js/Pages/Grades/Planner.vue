@@ -9,17 +9,25 @@ const props = defineProps({
     bimestre: Number,
     anosDisponiveis: Array,
     bimestresDisponiveis: Array,
+    anoEntrada: [Number, String],
+    bimestreEntrada: String,
+    anosEntradaDisponiveis: Array,
+    bimestresEntradaDisponiveis: Array,
 });
 
 // --- Filtros de período ---
 const selectedAno      = ref(props.ano      || '');
 const selectedBimestre = ref(props.bimestre || '');
+const selectedAnoEntrada      = ref(props.anoEntrada      || '');
+const selectedBimestreEntrada = ref(props.bimestreEntrada || '');
 
 const aplicarFiltro = () => {
     if (!selectedAno.value || !selectedBimestre.value) return;
     router.get(route('grades.planner'), {
         ano: selectedAno.value,
         bimestre: selectedBimestre.value,
+        ...(selectedAnoEntrada.value      ? { ano_entrada: selectedAnoEntrada.value }           : {}),
+        ...(selectedBimestreEntrada.value ? { bimestre_entrada: selectedBimestreEntrada.value } : {}),
     }, { preserveScroll: true });
 };
 
@@ -43,8 +51,6 @@ const diasExtras     = ['SABADO', 'ATIVIDADE_DIGITAL'];
 const alteracoesPendentes = ref([]);
 const hasPendentes = computed(() => alteracoesPendentes.value.length > 0);
 
-// --- Modo de visualização ---
-const modoGrade = ref(false); // false = compacto, true = grade completa
 
 // --- Validação de Disponibilidade do Professor ---
 const diaParaDisponibilidade = {
@@ -72,14 +78,13 @@ const onDragOver = (gradeId, event, dia = null, bloco = null) => {
 
     const mesmaGrade = dragInfo.value.fromGradeId === gradeId;
 
-    // Mesma grade só faz sentido no modo grade (slot específico diferente do original)
-    if (mesmaGrade && modoGrade.value) {
+    if (mesmaGrade) {
         const horario = gradesLocais.value
             .find(g => g.id === gradeId)?.horarios
             .find(h => h.id === dragInfo.value.horarioId);
         const slotDiferente = horario && (horario.dia_semana !== dia || horario.horario_bloco !== bloco);
         if (slotDiferente) dropTarget.value = { gradeId, dia, bloco };
-    } else if (!mesmaGrade) {
+    } else {
         dropTarget.value = { gradeId, dia, bloco };
     }
 };
@@ -329,6 +334,30 @@ const cardCor = (horario) => {
                             >
                                 Carregar
                             </button>
+
+                            <div class="w-px h-8 bg-gray-200 dark:bg-neutral-700 self-end mb-1 hidden sm:block"></div>
+
+                            <div class="flex flex-col gap-1">
+                                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Turma — Ano entrada</label>
+                                <select
+                                    v-model="selectedAnoEntrada"
+                                    class="rounded-md border-gray-300 dark:border-gray-300/40 dark:bg-neutral-800 dark:text-gray-200 text-sm shadow-sm focus:ring-orange-500 focus:border-orange-500 py-1.5 pl-3 pr-8"
+                                >
+                                    <option value="">Todos</option>
+                                    <option v-for="a in props.anosEntradaDisponiveis" :key="a" :value="a">{{ a }}</option>
+                                </select>
+                            </div>
+
+                            <div class="flex flex-col gap-1">
+                                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Turma — Bimestre entrada</label>
+                                <select
+                                    v-model="selectedBimestreEntrada"
+                                    class="rounded-md border-gray-300 dark:border-gray-300/40 dark:bg-neutral-800 dark:text-gray-200 text-sm shadow-sm focus:ring-orange-500 focus:border-orange-500 py-1.5 pl-3 pr-8"
+                                >
+                                    <option value="">Todos</option>
+                                    <option v-for="b in props.bimestresEntradaDisponiveis" :key="b" :value="b">{{ b }}</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -387,105 +416,8 @@ const cardCor = (horario) => {
                         </div>
                     </div>
 
-                    <!-- Toggle de modo de visualização -->
-                    <div class="flex items-center gap-3 mb-4">
-                        <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Visualização</span>
-                        <button
-                            type="button"
-                            @click="modoGrade = !modoGrade"
-                            class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none"
-                            :class="modoGrade ? 'bg-orange-500' : 'bg-gray-300 dark:bg-neutral-600'"
-                        >
-                            <span
-                                class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
-                                :class="modoGrade ? 'translate-x-6' : 'translate-x-1'"
-                            />
-                        </button>
-                        <span class="text-sm font-medium" :class="modoGrade ? 'text-orange-500 dark:text-orange-400' : 'text-gray-500 dark:text-gray-400'">
-                            {{ modoGrade ? 'Grade completa' : 'Somente preenchidos' }}
-                        </span>
-                    </div>
-
-                    <!-- ══════════════════════════════════════════ -->
-                    <!-- MODO COMPACTO (padrão) -->
-                    <!-- ══════════════════════════════════════════ -->
-                    <div v-if="!modoGrade" class="flex gap-4 overflow-x-auto pb-6 items-start">
-                        <div
-                            v-for="grade in gradesLocais"
-                            :key="grade.id"
-                            class="shrink-0 w-60 rounded-lg border transition-all duration-150"
-                            :class="isDropTarget(grade.id)
-                                ? 'border-orange-400 dark:border-orange-500 shadow-lg shadow-orange-200 dark:shadow-orange-500/20 ring-2 ring-orange-300 dark:ring-orange-500/40'
-                                : 'border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900'"
-                            @dragover="onDragOver(grade.id, $event)"
-                            @dragleave="onDragLeave"
-                            @drop="onDrop(grade.id)"
-                        >
-                            <!-- Cabeçalho -->
-                            <div class="p-3 border-b border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 rounded-t-lg">
-                                <p class="text-sm font-bold text-gray-800 dark:text-gray-100 truncate" :title="grade.nome">{{ grade.nome }}</p>
-                                <div class="flex gap-1.5 mt-1.5 flex-wrap">
-                                    <span v-if="grade.turma" class="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 font-medium">{{ grade.turma.nome }}</span>
-                                    <span v-if="grade.curso?.length" class="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 font-medium">
-                                        {{ grade.curso.length === 2 ? 'Mista' : (grade.curso[0]?.includes('Engenharia') ? 'Eng. SW' : 'C. Comp') }}
-                                    </span>
-                                </div>
-                                <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-1">{{ grade.horarios.length }} horário{{ grade.horarios.length !== 1 ? 's' : '' }}</p>
-                            </div>
-                            <!-- Cards -->
-                            <div class="p-2 space-y-1.5 min-h-[120px]">
-                                <template v-for="dia in diasDaSemana" :key="dia">
-                                    <template v-for="bloco in horariosBlocos" :key="bloco">
-                                        <div
-                                            v-for="horario in getHorariosSlot(grade, dia, bloco)"
-                                            :key="horario.id"
-                                            draggable="true"
-                                            @dragstart="onDragStart(horario, grade.id)"
-                                            class="border-l-4 rounded-md px-2 py-1.5 cursor-grab active:cursor-grabbing select-none transition-shadow hover:shadow-md dark:hover:shadow-black/30"
-                                            :class="cardCor(horario)"
-                                        >
-                                            <p class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ diaLabel(dia) }} · {{ blocoLabel(bloco) }}</p>
-                                            <p class="text-xs font-semibold text-gray-800 dark:text-gray-200 leading-snug mt-0.5">{{ horario.materia?.nome || '—' }}</p>
-                                            <span class="inline-block mt-0.5 px-1.5 py-0.5 text-[9px] font-bold rounded-full"
-                                            :class="{'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300': horario.tipo_aula?.includes('Engenharia'),
-                                            'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-300': horario.tipo_aula?.includes('Ciências'),
-                                            'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300': horario.tipo_aula?.includes('Ambos') || horario.tipo_aula?.includes('Core'),
-                                            'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-300': horario.tipo_aula?.includes('Flex'),
-                                            'bg-gray-100 dark:bg-neutral-700 text-gray-500 dark:text-gray-400': !horario.tipo_aula,}">{{ horario.tipo_aula?.includes('Engenharia') ? 'Eng. SW' : horario.tipo_aula?.includes('Ciências') ? 'C. Comp' : horario.tipo_aula?.includes('Flex') ? 'Flex' : 'Core' }}
-                                            </span>
-                                            <p class="text-[10px] text-gray-500 dark:text-gray-400 truncate">{{ horario.professor?.nome || '—' }}</p>
-                                            <p v-if="horario.sala" class="text-[10px] text-gray-400 dark:text-gray-500">🚪 {{ horario.sala }}</p>
-                                        </div>
-                                    </template>
-                                </template>
-                                <template v-if="getHorariosExtras(grade).length > 0">
-                                    <div class="border-t border-dashed border-gray-200 dark:border-neutral-700 pt-2 mt-2">
-                                        <p class="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Extras</p>
-                                        <div
-                                            v-for="horario in getHorariosExtras(grade)"
-                                            :key="horario.id"
-                                            draggable="true"
-                                            @dragstart="onDragStart(horario, grade.id)"
-                                            class="border-l-4 border-l-gray-400 bg-gray-50 dark:bg-neutral-800 rounded-md px-2 py-1.5 cursor-grab active:cursor-grabbing select-none mb-1 hover:shadow-md transition-shadow"
-                                        >
-                                            <p class="text-[10px] font-bold text-gray-500 uppercase">{{ diaLabel(horario.dia_semana) }}</p>
-                                            <p class="text-xs font-semibold text-gray-800 dark:text-gray-200">{{ horario.materia?.nome || '—' }}</p>
-                                            <span class="inline-block mt-0.5 px-1.5 py-0.5 text-[9px] font-bold rounded-full":class="{'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300': horario.tipo_aula?.includes('Engenharia'),'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-300': horario.tipo_aula?.includes('Ciências'),'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300': horario.tipo_aula?.includes('Ambos') || horario.tipo_aula?.includes('Core'),'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-300': horario.tipo_aula?.includes('Flex'),'bg-gray-100 dark:bg-neutral-700 text-gray-500 dark:text-gray-400': !horario.tipo_aula,}">
-                                             {{ horario.tipo_aula?.includes('Engenharia') ? 'Eng. SW' : horario.tipo_aula?.includes('Ciências') ? 'C. Comp' : horario.tipo_aula?.includes('Flex') ? 'Flex' : 'Core' }}
-                                            </span>
-                                            <p class="text-[10px] text-gray-500 dark:text-gray-400 truncate">{{ horario.professor?.nome || '—' }}</p>
-                                        </div>
-                                    </div>
-                                </template>
-                                <div v-if="grade.horarios.length === 0" class="text-center py-8 text-gray-300 dark:text-gray-600 text-xs select-none">Solte aqui</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- ══════════════════════════════════════════ -->
-                    <!-- MODO GRADE COMPLETA -->
-                    <!-- ══════════════════════════════════════════ -->
-                    <div v-else class="overflow-x-auto pb-6">
+                    <!-- Grade completa -->
+                    <div class="overflow-x-auto pb-6">
                         <table class="border-separate border-spacing-0 min-w-max">
                             <thead>
                                 <tr>
