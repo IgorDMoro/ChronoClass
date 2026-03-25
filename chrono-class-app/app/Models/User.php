@@ -36,6 +36,13 @@ class User extends Authenticatable
     ];
 
     /**
+     * Appended virtual attributes.
+     *
+     * @var list<string>
+     */
+    protected $appends = ['role'];
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -46,5 +53,23 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function isProfessor(): bool
+    {
+        return str_ends_with($this->email, '@unifil.br')
+            || $this->email === 'igor2504moro@gmail.com';
+    }
+
+    public function isAluno(): bool
+    {
+        return str_ends_with($this->email, '@edu.unifil.br');
+    }
+
+    public function getRoleAttribute(): string
+    {
+        if ($this->isProfessor()) return 'professor';
+        if ($this->isAluno()) return 'aluno';
+        return 'unknown';
     }
 }

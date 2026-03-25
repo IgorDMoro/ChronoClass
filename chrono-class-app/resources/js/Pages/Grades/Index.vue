@@ -1,8 +1,10 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import ConfirmationModal from '@/Components/ConfirmationModal.vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
+
+const isAluno = computed(() => usePage().props.auth.user.role === 'aluno');
 
 const props = defineProps({
     grades: Array,
@@ -99,10 +101,10 @@ const bimestreLabel = (n) => n ? `${n}º Bimestre` : '—';
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                             <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Minhas Grades de Horários</h3>
                             <div class="flex gap-2">
-                                <Link :href="route('grades.planner')" class="inline-flex items-center px-4 py-2 bg-zinc-700 dark:bg-zinc-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-zinc-800 dark:hover:bg-zinc-500 transition ease-in-out duration-150">
+                                <Link v-if="!isAluno" :href="route('grades.planner')" class="inline-flex items-center px-4 py-2 bg-zinc-700 dark:bg-zinc-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-zinc-800 dark:hover:bg-zinc-500 transition ease-in-out duration-150">
                                     🗂 Planner
                                 </Link>
-                                <Link :href="route('grades.create')" class="inline-flex items-center px-4 py-2 bg-orange-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-orange-700 transition ease-in-out duration-150">
+                                <Link v-if="!isAluno" :href="route('grades.create')" class="inline-flex items-center px-4 py-2 bg-orange-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-orange-700 transition ease-in-out duration-150">
                                     + Criar Nova Grade
                                 </Link>
                             </div>
@@ -183,15 +185,15 @@ const bimestreLabel = (n) => n ? `${n}º Bimestre` : '—';
                                             👁️
                                         </Link>
 
-                                        <button @click.prevent="togglePin(grade.id)" class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-neutral-800 transition" :title="grade.pinned_at ? 'Desafixar' : 'Fixar'">
+                                        <button v-if="!isAluno" @click.prevent="togglePin(grade.id)" class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-neutral-800 transition" :title="grade.pinned_at ? 'Desafixar' : 'Fixar'">
                                             <span :class="[grade.pinned_at ? 'text-orange-500' : 'text-gray-400']" class="text-lg">📌</span>
                                         </button>
 
-                                        <Link :href="route('grades.edit', grade.id)" class="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white rounded-md font-semibold text-xs uppercase hover:bg-blue-700 transition">
+                                        <Link v-if="!isAluno" :href="route('grades.edit', grade.id)" class="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white rounded-md font-semibold text-xs uppercase hover:bg-blue-700 transition">
                                             Editar
                                         </Link>
 
-                                        <button @click.prevent="confirmGradeDeletion(grade.id)" class="inline-flex items-center px-3 py-1.5 bg-red-600 text-white rounded-md font-semibold text-xs uppercase hover:bg-red-700 transition">
+                                        <button v-if="!isAluno" @click.prevent="confirmGradeDeletion(grade.id)" class="inline-flex items-center px-3 py-1.5 bg-red-600 text-white rounded-md font-semibold text-xs uppercase hover:bg-red-700 transition">
                                             Excluir
                                         </button>
                                     </div>

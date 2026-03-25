@@ -1,11 +1,13 @@
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import ApplicationLogo from "@/Components/ApplicationLogo.vue";
 import Dropdown from "@/Components/Dropdown.vue";
 import DropdownLink from "@/Components/DropdownLink.vue";
 import NavLink from "@/Components/NavLink.vue";
 import ResponsiveNavLink from "@/Components/ResponsiveNavLink.vue";
-import { Link } from "@inertiajs/vue3";
+import { Link, usePage } from "@inertiajs/vue3";
+
+const isAluno = computed(() => usePage().props.auth.user.role === 'aluno');
 
 const showingNavigationDropdown = ref(false);
 
@@ -61,11 +63,11 @@ onMounted(() => {
 
               <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                 <NavLink :href="route('dashboard')" :active="route().current('dashboard')"> Dashboard </NavLink>
-                <NavLink :href="route('salas.index')" :active="route().current('salas.index')"> Salas </NavLink>
-                <NavLink :href="route('professores.index')" :active="route().current('professores.index')"> Professores </NavLink>
-                <NavLink :href="route('materias.index')" :active="route().current('materias.index')"> Unidades Curriculares </NavLink>
+                <NavLink v-if="!isAluno" :href="route('salas.index')" :active="route().current('salas.index')"> Salas </NavLink>
+                <NavLink v-if="!isAluno" :href="route('professores.index')" :active="route().current('professores.index')"> Professores </NavLink>
+                <NavLink v-if="!isAluno" :href="route('materias.index')" :active="route().current('materias.index')"> Unidades Curriculares </NavLink>
                 <NavLink :href="route('grades.index')" :active="route().current('grades.index')"> Grades </NavLink>
-                <NavLink :href="route('turmas.index')" :active="route().current('turmas.index')"> Turmas </NavLink>
+                <NavLink v-if="!isAluno" :href="route('turmas.index')" :active="route().current('turmas.index')"> Turmas </NavLink>
               </div>
             </div>
 
@@ -116,11 +118,11 @@ onMounted(() => {
         <div :class="{ block: showingNavigationDropdown, hidden: !showingNavigationDropdown, }" class="sm:hidden">
           <div class="space-y-1 px-2 pb-3 pt-2">
             <ResponsiveNavLink :href="route('dashboard')" :active="route().current('dashboard')"> Dashboard </ResponsiveNavLink>
-            <ResponsiveNavLink :href="route('salas.index')" :active="route().current('salas.index')"> Salas </ResponsiveNavLink>
-            <ResponsiveNavLink :href="route('professores.index')" :active="route().current('professores.index')"> Professores </ResponsiveNavLink>
-            <ResponsiveNavLink :href="route('materias.index')" :active="route().current('materias.index')"> Unidades Curriculares </ResponsiveNavLink>
+            <ResponsiveNavLink v-if="!isAluno" :href="route('salas.index')" :active="route().current('salas.index')"> Salas </ResponsiveNavLink>
+            <ResponsiveNavLink v-if="!isAluno" :href="route('professores.index')" :active="route().current('professores.index')"> Professores </ResponsiveNavLink>
+            <ResponsiveNavLink v-if="!isAluno" :href="route('materias.index')" :active="route().current('materias.index')"> Unidades Curriculares </ResponsiveNavLink>
             <ResponsiveNavLink :href="route('grades.index')" :active="route().current('grades.index')"> Grades </ResponsiveNavLink>
-            <ResponsiveNavLink :href="route('turmas.index')" :active="route().current('turmas.index')"> Turmas </ResponsiveNavLink>
+            <ResponsiveNavLink v-if="!isAluno" :href="route('turmas.index')" :active="route().current('turmas.index')"> Turmas </ResponsiveNavLink>
           </div>
         </div>
       </nav>

@@ -1,6 +1,9 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
+
+const isAluno = computed(() => usePage().props.auth.user.role === 'aluno');
 
 const props = defineProps({
     grade: Object,
@@ -45,6 +48,7 @@ const getHorario = (dia, bloco) => {
                                     ⬅️ Voltar
                                 </Link>
                                 <Link
+                                    v-if="!isAluno"
                                     :href="route('grades.edit', grade.id)"
                                     class="inline-flex items-center px-4 py-2 bg-orange-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-orange-700 transition ease-in-out duration-150"
                                 >

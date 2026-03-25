@@ -1,6 +1,9 @@
 <script setup>
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
-import { Head, Link } from "@inertiajs/vue3";
+import { Head, Link, usePage } from "@inertiajs/vue3";
+import { computed } from "vue";
+
+const isAluno = computed(() => usePage().props.auth.user.role === 'aluno');
 
 const props = defineProps({
     grades: Array, // Você precisará passar as grades existentes do Controller
@@ -28,6 +31,7 @@ const formatCursos = (cursos) => {
                     Minhas Grades
                 </h2>
                 <Link
+                    v-if="!isAluno"
                     :href="route('grades.create')"
                     class="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-md text-sm font-bold transition shadow-lg shadow-orange-500/20"
                 >
