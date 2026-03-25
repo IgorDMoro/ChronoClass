@@ -444,17 +444,40 @@ const cardCor = (horario) => {
                     </div>
 
                     <!-- Grade completa -->
-                    <div class="overflow-x-auto pb-6">
+                    <div class="overflow-x-auto pb-2 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-gray-100 dark:[&::-webkit-scrollbar-track]:bg-neutral-800 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-600 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:rounded-full">
                         <table class="border-separate border-spacing-0 min-w-max">
                             <thead>
+                                <!-- Linha 1: nome dos dias com colspan=2 -->
                                 <tr>
-                                    <!-- Coluna de rótulos -->
-                                    <th class="w-28 sticky left-0 z-10 bg-white dark:bg-zinc-800"></th>
+                                    <th class="w-48 sticky left-0 z-10 bg-white dark:bg-zinc-800"></th>
                                     <th
-                                        v-for="grade in gradesLocais"
-                                        :key="grade.id"
-                                        class="w-56 px-3 py-2 bg-gray-50 dark:bg-neutral-800 border-b border-l border-gray-200 dark:border-neutral-700 text-left"
+                                        v-for="dia in diasDaSemana"
+                                        :key="dia"
+                                        colspan="2"
+                                        class="px-2 pt-2 pb-1 bg-gray-50 dark:bg-neutral-800 border-b border-l-2 border-gray-200 dark:border-neutral-700 border-l-gray-300 dark:border-l-neutral-600 text-center"
                                     >
+                                        <p class="text-[11px] font-bold text-orange-500 dark:text-orange-400 uppercase tracking-wide">{{ diaLabel(dia) }}</p>
+                                    </th>
+                                </tr>
+                                <!-- Linha 2: horários dos blocos -->
+                                <tr>
+                                    <th class="w-48 sticky left-0 z-10 bg-white dark:bg-zinc-800"></th>
+                                    <template v-for="dia in diasDaSemana" :key="dia">
+                                        <th
+                                            v-for="(bloco, bIdx) in horariosBlocos"
+                                            :key="bloco"
+                                            class="w-44 px-2 py-1.5 bg-gray-50 dark:bg-neutral-800 border-b border-l border-gray-200 dark:border-neutral-700 text-center"
+                                            :class="bIdx === 0 ? 'border-l-2 border-l-gray-300 dark:border-l-neutral-600' : ''"
+                                        >
+                                            <p class="text-[10px] text-gray-400 dark:text-gray-500">{{ blocoLabel(bloco) }}</p>
+                                        </th>
+                                    </template>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="grade in gradesLocais" :key="grade.id">
+                                    <!-- Rótulo da turma/grade -->
+                                    <td class="sticky left-0 z-10 bg-white dark:bg-zinc-800 border-b border-r border-gray-200 dark:border-neutral-700 px-3 py-2 align-middle">
                                         <p class="text-sm font-bold text-gray-800 dark:text-gray-100 truncate">{{ grade.nome }}</p>
                                         <div class="flex gap-1 mt-1 flex-wrap">
                                             <span v-if="grade.turma" class="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 font-medium">{{ grade.turma.nome }}</span>
@@ -462,28 +485,16 @@ const cardCor = (horario) => {
                                                 {{ grade.curso.length === 2 ? 'Mista' : (grade.curso[0]?.includes('Engenharia') ? 'Eng. SW' : 'C. Comp') }}
                                             </span>
                                         </div>
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <template v-for="dia in diasDaSemana" :key="dia">
-                                    <tr v-for="(bloco, bIdx) in horariosBlocos" :key="bloco">
-                                        <!-- Rótulo dia + bloco -->
-                                        <td
-                                            class="sticky left-0 z-10 bg-white dark:bg-zinc-800 border-b border-r border-gray-200 dark:border-neutral-700 px-2 py-1.5 text-right"
-                                            :class="bIdx === 0 ? 'pt-3' : ''"
-                                        >
-                                            <p v-if="bIdx === 0" class="text-[11px] font-bold text-orange-500 dark:text-orange-400 uppercase">{{ diaLabel(dia) }}</p>
-                                            <p class="text-[10px] text-gray-400 dark:text-gray-500">{{ blocoLabel(bloco) }}</p>
-                                        </td>
+                                    </td>
 
-                                        <!-- Célula por grade -->
+                                    <!-- Células: dia + bloco -->
+                                    <template v-for="dia in diasDaSemana" :key="dia">
                                         <td
-                                            v-for="grade in gradesLocais"
-                                            :key="grade.id"
+                                            v-for="(bloco, bIdx) in horariosBlocos"
+                                            :key="bloco"
                                             class="border-b border-l border-gray-200 dark:border-neutral-700 p-1.5 align-top transition-colors"
                                             :class="[
-                                                bIdx === 0 ? 'pt-2' : '',
+                                                bIdx === 0 ? 'border-l-2 border-l-gray-300 dark:border-l-neutral-600' : '',
                                                 isDropTarget(grade.id, dia, bloco)
                                                     ? 'bg-orange-50 dark:bg-orange-500/10 ring-2 ring-inset ring-orange-400 dark:ring-orange-500'
                                                     : 'bg-white dark:bg-neutral-900'
@@ -498,7 +509,7 @@ const cardCor = (horario) => {
                                                 :key="horario.id"
                                                 draggable="true"
                                                 @dragstart="onDragStart(horario, grade.id)"
-                                                class="border-l-4 rounded px-2 py-1.5 cursor-grab active:cursor-grabbing select-none hover:shadow-md dark:hover:shadow-black/30 transition-shadow"
+                                                class="border-l-4 mb-1 rounded px-2 py-1.5 cursor-grab active:cursor-grabbing select-none hover:shadow-md dark:hover:shadow-black/30 transition-shadow"
                                                 :class="cardCor(horario)"
                                             >
                                                 <p class="text-xs font-semibold text-gray-800 dark:text-gray-200 leading-snug">{{ horario.materia?.nome || '—' }}</p>
@@ -525,8 +536,8 @@ const cardCor = (horario) => {
                                                 <span class="text-[10px] select-none">soltar aqui</span>
                                             </div>
                                         </td>
-                                    </tr>
-                                </template>
+                                    </template>
+                                </tr>
                             </tbody>
                         </table>
                     </div>

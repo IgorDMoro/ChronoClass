@@ -88,10 +88,8 @@ const formatDisponibilidade = (horariosDisponiveisPivot) => {
                                         <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider">Professor</th>
                                         <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider">Contato</th>
                                         <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider">Disponibilidade</th>
-                                        <th scope="col" class="relative px-6 py-3">
-                                            <span class="sr-only">Ações</span>
-                                        </th>
-                                    </tr>
+                                        <th scope="col" class="px-6 py-4 text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider">Ações</th>
+                                        </tr>
                                 </thead>
                                 <tbody>
                                     <tr v-for="professor in professores" :key="professor.id" class="border-b border-gray-200 dark:border-neutral-800 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors duration-150">
