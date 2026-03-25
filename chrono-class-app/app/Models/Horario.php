@@ -36,4 +36,8 @@ class Horario extends Model
     {
         return $this->belongsTo(Professor::class);
     }
+    public function salaRelacionamento() 
+    {
+        return $this->belongsTo(Sala::class, 'sala');
+    }
 }

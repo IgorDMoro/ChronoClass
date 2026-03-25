@@ -100,7 +100,7 @@ class GradeController extends Controller
 
     public function show(Grade $grade)
     {
-        $grade->load('horarios.materia', 'horarios.professor', 'turma');
+        $grade->load('horarios.materia', 'horarios.professor', 'turma', 'horarios.salaRelacionamento');
 
         return Inertia::render('Grades/Show', [
             'grade' => $grade,
