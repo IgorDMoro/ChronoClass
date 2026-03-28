@@ -40,7 +40,7 @@ class ProfessorController extends Controller
      */
     public function index()
     {
-        $professores = Professor::with(['horariosDisponiveisPivot', 'materias'])->get();
+        $professores = Professor::with(['horariosDisponiveisPivot', 'materias'])->orderBy('nome')->paginate(10);
 
         return Inertia::render('Professores/Index', [
             'professores' => $professores

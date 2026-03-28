@@ -22,7 +22,7 @@ class GradeController extends Controller
                 ->orderBy('ano', 'desc')
                 ->orderBy('bimestre', 'desc')
                 ->orderBy('created_at', 'desc')
-                ->get(),
+                ->paginate(10),
         ]);
     }
 

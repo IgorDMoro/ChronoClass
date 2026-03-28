@@ -11,7 +11,7 @@ class TurmaController extends Controller
     public function index()
     {
         return Inertia::render('Turmas/Index', [
-            'turmas' => Turma::all(),
+            'turmas' => Turma::orderBy('nome')->paginate(10),
         ]);
     }
 

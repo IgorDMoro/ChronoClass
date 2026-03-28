@@ -35,7 +35,7 @@ const executeDelete = () => {
 
 
 const props = defineProps({
-    professores: Array,
+    professores: Object,
     diasDaSemana: Array,
     horariosDeAula: Array,
 });
@@ -92,7 +92,7 @@ const formatDisponibilidade = (horariosDisponiveisPivot) => {
                                         </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="professor in professores" :key="professor.id" class="border-b border-gray-200 dark:border-neutral-800 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors duration-150">
+                                    <tr v-for="professor in professores.data" :key="professor.id" class="border-b border-gray-200 dark:border-neutral-800 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors duration-150">
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <div class="text-sm font-semibold text-gray-900 dark:text-gray-200">{{ professor.nome }}</div>
                                             <div class="text-xs text-gray-500 dark:text-gray-400">Matrícula: {{ professor.matricula }}</div>
@@ -131,7 +131,7 @@ const formatDisponibilidade = (horariosDisponiveisPivot) => {
                                             </div>
                                         </td>
                                     </tr>
-                                    <tr v-if="professores.length === 0">
+                                    <tr v-if="professores.data.length === 0">
                                         <td colspan="4" class="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
                                             Nenhum professor cadastrado.
                                         </td>
@@ -139,6 +139,16 @@ const formatDisponibilidade = (horariosDisponiveisPivot) => {
                                 </tbody>
                             </table>
                         </div>
+
+                        <div v-if="professores.links.length > 3" class="flex justify-center mt-6">
+                            <div class="flex flex-wrap -mb-1">
+                                <template v-for="(link, key) in professores.links" :key="key">
+                                    <div v-if="link.url === null" class="mr-1 mb-1 px-4 py-3 text-sm leading-4 text-gray-400 border rounded-md bg-white dark:bg-neutral-800" v-html="link.label" />
+                                    <Link v-else class="mr-1 mb-1 px-4 py-3 text-sm leading-4 border rounded-md transition-colors duration-150" :class="{ 'bg-orange-600 text-white border-orange-600': link.active, 'bg-white hover:bg-gray-100 dark:bg-neutral-700 dark:hover:bg-neutral-600 text-gray-800 dark:text-gray-300': !link.active }" :href="link.url" v-html="link.label" />
+                                </template>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>

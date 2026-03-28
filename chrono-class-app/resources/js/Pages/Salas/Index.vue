@@ -4,7 +4,7 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
 const props = defineProps({
-    salas: Array,
+    salas: Object,
 });
 
 const form = useForm({});
@@ -64,7 +64,7 @@ const executeDelete = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="sala in salas" :key="sala.id" class="border-b border-gray-200 dark:border-neutral-800 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors duration-150">
+                                    <tr v-for="sala in salas.data" :key="sala.id" class="border-b border-gray-200 dark:border-neutral-800 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors duration-150">
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-gray-200">{{ sala.nome }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">{{ sala.capacidade }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300 capitalize">{{ sala.campus }}</td>
@@ -95,7 +95,7 @@ const executeDelete = () => {
                                             </div>
                                         </td>
                                     </tr>
-                                    <tr v-if="salas.length === 0">
+                                    <tr v-if="salas.data.length === 0">
                                         <td colspan="4" class="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
                                             Nenhuma sala cadastrada.
                                         </td>
@@ -103,6 +103,16 @@ const executeDelete = () => {
                                 </tbody>
                             </table>
                         </div>
+
+                        <div v-if="salas.links.length > 3" class="flex justify-center mt-6">
+                            <div class="flex flex-wrap -mb-1">
+                                <template v-for="(link, key) in salas.links" :key="key">
+                                    <div v-if="link.url === null" class="mr-1 mb-1 px-4 py-3 text-sm leading-4 text-gray-400 border rounded-md bg-white dark:bg-neutral-800" v-html="link.label" />
+                                    <Link v-else class="mr-1 mb-1 px-4 py-3 text-sm leading-4 border rounded-md transition-colors duration-150" :class="{ 'bg-orange-600 text-white border-orange-600': link.active, 'bg-white hover:bg-gray-100 dark:bg-neutral-700 dark:hover:bg-neutral-600 text-gray-800 dark:text-gray-300': !link.active }" :href="link.url" v-html="link.label" />
+                                </template>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>

@@ -13,7 +13,7 @@ class SalaController extends Controller
      */
     public function index()
     {
-        $salas = Sala::all(); // Busca todas as salas
+        $salas = Sala::orderBy('nome')->paginate(10);
         return Inertia::render('Salas/Index', [
             'salas' => $salas,
         ]);

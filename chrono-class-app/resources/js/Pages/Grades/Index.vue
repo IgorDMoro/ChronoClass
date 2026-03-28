@@ -7,7 +7,7 @@ import { ref, computed } from 'vue';
 const isAluno = computed(() => usePage().props.auth.user.role === 'aluno');
 
 const props = defineProps({
-    grades: Array,
+    grades: Object,
 });
 
 // --- Exclusão ---
@@ -44,7 +44,7 @@ const filterAno = ref('');
 const filterBimestre = ref('');
 
 const anosDisponiveis = computed(() => {
-    const anos = [...new Set(props.grades.map(g => g.ano).filter(Boolean))];
+    const anos = [...new Set(props.grades.data.map(g => g.ano).filter(Boolean))];
     return anos.sort((a, b) => b - a);
 });
 
@@ -55,7 +55,7 @@ const onAnoChange = () => {
 const bimestresDisponiveis = computed(() => {
     if (!filterAno.value) return [1, 2, 3, 4];
     const bimestres = [...new Set(
-        props.grades
+        props.grades.data
             .filter(g => g.ano == filterAno.value)
             .map(g => g.bimestre)
             .filter(Boolean)
@@ -64,7 +64,7 @@ const bimestresDisponiveis = computed(() => {
 });
 
 const filteredGrades = computed(() => {
-    return props.grades.filter(grade => {
+    return props.grades.data.filter(grade => {
         const search = searchQuery.value.toLowerCase().trim();
         const matchSearch = !search ||
             grade.nome.toLowerCase().includes(search) ||
@@ -204,6 +204,16 @@ const bimestreLabel = (n) => n ? `${n}º Bimestre` : '—';
                                 Nenhuma grade encontrada.
                             </div>
                         </div>
+
+                        <div v-if="grades.links.length > 3" class="flex justify-center mt-6">
+                            <div class="flex flex-wrap -mb-1">
+                                <template v-for="(link, key) in grades.links" :key="key">
+                                    <div v-if="link.url === null" class="mr-1 mb-1 px-4 py-3 text-sm leading-4 text-gray-400 border rounded-md bg-white dark:bg-neutral-800" v-html="link.label" />
+                                    <Link v-else class="mr-1 mb-1 px-4 py-3 text-sm leading-4 border rounded-md transition-colors duration-150" :class="{ 'bg-orange-600 text-white border-orange-600': link.active, 'bg-white hover:bg-gray-100 dark:bg-neutral-700 dark:hover:bg-neutral-600 text-gray-800 dark:text-gray-300': !link.active }" :href="link.url" v-html="link.label" />
+                                </template>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>
