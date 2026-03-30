@@ -23,6 +23,7 @@ class User extends Authenticatable
         'password',
         'google_id',
         'avatar',
+        'cargo',
     ];
 
     /**
@@ -57,7 +58,8 @@ class User extends Authenticatable
 
     public function isProfessor(): bool
     {
-        return str_ends_with($this->email, '@unifil.br')
+        // Garante que o e-mail termine com @unifil.br, mas que NÃO seja @edu.unifil.br
+        return (str_ends_with($this->email, '@unifil.br') && !str_ends_with($this->email, '@edu.unifil.br'))
             || $this->email === 'igor2504moro@gmail.com';
     }
 

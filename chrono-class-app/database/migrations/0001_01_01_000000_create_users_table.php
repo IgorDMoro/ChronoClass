@@ -16,7 +16,10 @@ return new class extends Migration
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
+            $table->string('password')->nullable(); // Permitir nulo ajuda no login exclusivo pelo Google, caso prefira
+            $table->string('google_id')->nullable(); // ID do Google
+            $table->string('avatar')->nullable(); // Foto de perfil do Google
+            $table->string('cargo')->default('usuario'); // Coluna de cargo com um valor padrão
             $table->rememberToken();
             $table->timestamps();
         });
