@@ -31,7 +31,7 @@ class TurmaController extends Controller
 
         Turma::create($request->all());
 
-        return redirect()->route('turmas.index');
+        return redirect()->route('turmas.index')->with('success', 'Turma criada com sucesso!');
     }
 
     public function edit(Turma $turma)
@@ -52,7 +52,7 @@ class TurmaController extends Controller
 
         $turma->update($request->all());
 
-        return redirect()->route('turmas.index');
+        return redirect()->route('turmas.index')->with('success', 'Turma atualizada com sucesso!');
     }
 
     public function updateWithPost(Request $request, Turma $turma)

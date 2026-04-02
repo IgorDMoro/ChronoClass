@@ -102,7 +102,7 @@ class ProfessorController extends Controller
         });
 
         return Redirect::route('professores.index')
-            ->with('message', 'Professor cadastrado com sucesso!');
+            ->with('success', 'Professor cadastrado com sucesso!');
     }
 
     /**
@@ -162,7 +162,7 @@ class ProfessorController extends Controller
         });
 
         return Redirect::route('professores.index')
-            ->with('message', 'Professor atualizado com sucesso!');
+            ->with('success', 'Professor atualizado com sucesso!');
     }
 
     /**
@@ -175,7 +175,7 @@ class ProfessorController extends Controller
         });
 
         return Redirect::route('professores.index')
-            ->with('message', 'Professor excluído com sucesso!');
+            ->with('success', 'Professor excluído com sucesso!');
     }
 
     public function updateWithPost(Request $request, Professor $professor)

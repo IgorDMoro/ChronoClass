@@ -3,6 +3,7 @@ import { ref, onMounted } from "vue";
 import ApplicationLogo from "@/Components/ApplicationLogo.vue";
 import Dropdown from "@/Components/Dropdown.vue";
 import DropdownLink from "@/Components/DropdownLink.vue";
+import Toast from "@/Components/Toast.vue";
 import NavLink from "@/Components/NavLink.vue";
 import ResponsiveNavLink from "@/Components/ResponsiveNavLink.vue";
 import { Link, usePage } from "@inertiajs/vue3";
@@ -44,6 +45,7 @@ onMounted(() => {
 
 <template>
   <div>
+    <Toast />
     <div
       class="min-h-screen bg-gray-100 dark:bg-[radial-gradient(ellipse_at_top_center,_var(--tw-gradient-stops))] dark:from-zinc-800 dark:via-neutral-800 dark:to-black"
     >
@@ -129,7 +131,7 @@ onMounted(() => {
         <slot />
       </main>
 
-      <a href="https://unifil.br/" target="_blank" rel="noopener noreferrer" class="bg-neutral-100 backdrop-blur-sm fixed bottom-4 right-4 z-50 opacity-40 flex items-end justify-end justify-content-end rounded-xl hover:opacity-100 transition-opacity duration-300"> 
+      <a href="https://unifil.br/" target="_blank" rel="noopener noreferrer" class="bg-neutral-100 backdrop-blur-sm fixed bottom-4 left-4 z-50 opacity-40 flex items-end justify-end justify-content-end rounded-xl hover:opacity-100 transition-opacity duration-300"> 
         <img src="../../../public/imgs/UniFil_Logo_Verical-01.png" alt="UniFil Logo" class="block h-full w-auto"/>
       </a>
     </div>

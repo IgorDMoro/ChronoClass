@@ -37,7 +37,7 @@ const executeDelete = () => {
 </script>
 
 <template>
-    <Head title="Salas" />
+    <Head title="Salas"     />
 
     <AuthenticatedLayout>
         <div class="py-12">
