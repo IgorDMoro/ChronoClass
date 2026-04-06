@@ -14,6 +14,24 @@ const form = useForm({
 });
 
 const submit = () => {
+    form.clearErrors();
+    let hasErrors = false;
+
+    if (!form.nome) {
+        form.setError('nome', 'Preencha o nome da sala para enviar.');
+        hasErrors = true;
+    }
+    if (!form.capacidade) {
+        form.setError('capacidade', 'Preencha a capacidade da sala para enviar.');
+        hasErrors = true;
+    }
+    if (!form.campus) {
+        form.setError('campus', 'Selecione o campus da sala para enviar.');
+        hasErrors = true;
+    }
+
+    if (hasErrors) return;
+
     form.post(route("salas.update-post", props.sala.id));
 };
 </script>
@@ -40,19 +58,19 @@ const submit = () => {
                                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div>
                                         <label for="nome" class="text-sm font-medium text-gray-700 dark:text-gray-300">Nome da Sala:</label>
-                                        <input type="text" id="nome" v-model="form.nome" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200" required autofocus />
+                                        <input type="text" id="nome" v-model="form.nome" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200" autofocus />
                                         <InputError class="mt-2" :message="form.errors.nome" />
                                     </div>
 
                                     <div>
                                         <label for="capacidade" class="text-sm font-medium text-gray-700 dark:text-gray-300">Capacidade:</label>
-                                        <input type="number" id="capacidade" v-model.number="form.capacidade" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200" required min="1" />
+                                        <input type="number" id="capacidade" v-model.number="form.capacidade" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200" min="1" />
                                         <InputError class="mt-2" :message="form.errors.capacidade" />
                                     </div>
 
                                     <div>
                                         <label for="campus" class="text-sm font-medium text-gray-700 dark:text-gray-300">Campus:</label>
-                                        <select id="campus" v-model="form.campus" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200" required>
+                                        <select id="campus" v-model="form.campus" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200">
                                             <option value="campus ipolon">Campus Ipolon</option>
                                             <option value="campus sede">Campus Sede</option>
                                         </select>

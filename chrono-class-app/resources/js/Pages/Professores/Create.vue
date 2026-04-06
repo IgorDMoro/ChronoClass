@@ -76,6 +76,20 @@ const materiasPaginadas = computed(() => {
 const onBuscaMateria = () => { materiasPagina.value = 1; };
 
 const submit = () => {
+    form.clearErrors();
+    let hasErrors = false;
+
+    if (!form.matricula) {
+        form.setError('matricula', 'Preencha a matrícula do professor para enviar.');
+        hasErrors = true;
+    }
+    if (!form.nome) {
+        form.setError('nome', 'Preencha o nome do professor para enviar.');
+        hasErrors = true;
+    }
+
+    if (hasErrors) return;
+
     form.post(route("professores.store"), {
         onSuccess: () => form.reset(),
     });
@@ -110,12 +124,12 @@ const formatDia = (dia) => dia.charAt(0).toUpperCase() + dia.slice(1);
                                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                                     <div>
                                         <label for="matricula" class="text-sm font-medium text-gray-700 dark:text-gray-300">Matrícula:</label>
-                                        <input type="number" id="matricula" v-model="form.matricula" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200" required />
+                                        <input type="number" id="matricula" v-model="form.matricula" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200" />
                                         <InputError class="mt-2" :message="form.errors.matricula" />
                                     </div>
                                     <div>
                                         <label for="nome" class="text-sm font-medium text-gray-700 dark:text-gray-300">Nome:</label>
-                                        <input type="text" id="nome" v-model="form.nome" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200" required />
+                                        <input type="text" id="nome" v-model="form.nome" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200" />
                                         <InputError class="mt-2" :message="form.errors.nome" />
                                     </div>
                                     <div>

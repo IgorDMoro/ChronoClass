@@ -225,22 +225,27 @@ const removeUcd = (index) => gradeUcd.value.splice(index, 1);
 
 // --- Submissão do Formulário ---
 const submit = () => {
+    form.clearErrors();
+    let hasErrors = false;
+
     if (!form.turma_id) {
-        alert('Selecione uma Turma!');
-        return;
+        form.setError('turma_id', 'Selecione a turma da grade para enviar.');
+        hasErrors = true;
     }
     if (form.curso.length === 0) {
-        alert('Selecione pelo menos um Curso!');
-        return;
+        form.setError('curso', 'Selecione pelo menos um curso da grade para enviar.');
+        hasErrors = true;
     }
     if (!form.bimestre) {
-        alert('Selecione o Bimestre!');
-        return;
+        form.setError('bimestre', 'Selecione o bimestre da grade para enviar.');
+        hasErrors = true;
     }
     if (!form.ano) {
-        alert('Informe o Ano!');
-        return;
+        form.setError('ano', 'Preencha o ano da grade para enviar.');
+        hasErrors = true;
     }
+
+    if (hasErrors) return;
 
     const horariosPreenchidos = [];
     Object.values(gradeVisual.value).forEach(diaDeAulas => {
@@ -278,7 +283,7 @@ const submit = () => {
     }
 
     if (horariosPreenchidos.length === 0) {
-        alert('Confirme pelo menos 1 aula antes de salvar!');
+        form.setError('horarios', 'Confirme pelo menos 1 aula antes de salvar.');
         return;
     }
 
@@ -316,7 +321,6 @@ const submit = () => {
                                             id="turma"
                                             v-model="form.turma_id"
                                             class="mt-1 w-full rounded-md border-gray-300 dark:border-gray-300/40 dark:bg-neutral-800 dark:text-gray-200 shadow-sm focus:ring-orange-500 focus:border-orange-500"
-                                            required
                                         >
                                             <option value="" disabled>Selecione uma Turma</option>
                                             <option v-for="turma in props.turmas" :key="turma.id" :value="turma.id">

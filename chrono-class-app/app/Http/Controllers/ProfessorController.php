@@ -76,6 +76,12 @@ class ProfessorController extends Controller
             'horarios_disponiveis_selecionados.*' => 'string|regex:/^[a-zA-ZáàâãéèêíìîóòôõúùûçÇ]+-\d{2}:\d{2}-\d{2}:\d{2}$/',
             'materias_ids' => 'nullable|array',
             'materias_ids.*' => 'exists:materias,id',
+        ], [
+            'matricula.required' => 'Preencha a matrícula do professor para enviar.',
+            'matricula.unique' => 'Já existe um professor com esta matrícula.',
+            'nome.required' => 'Preencha o nome do professor para enviar.',
+            'email.email' => 'Informe um e-mail válido.',
+            'email.unique' => 'Já existe um professor com este e-mail.',
         ]);
 
         DB::transaction(function () use ($validatedData) {
@@ -136,6 +142,12 @@ class ProfessorController extends Controller
             'horarios_disponiveis_selecionados.*' => 'string|regex:/^[a-zA-ZáàâãéèêíìîóòôõúùûçÇ]+-\d{2}:\d{2}-\d{2}:\d{2}$/',
             'materias_ids' => 'nullable|array',
             'materias_ids.*' => 'exists:materias,id',
+        ], [
+            'matricula.required' => 'Preencha a matrícula do professor para enviar.',
+            'matricula.unique' => 'Já existe um professor com esta matrícula.',
+            'nome.required' => 'Preencha o nome do professor para enviar.',
+            'email.email' => 'Informe um e-mail válido.',
+            'email.unique' => 'Já existe um professor com este e-mail.',
         ]);
 
         DB::transaction(function () use ($validatedData, $professor) {

@@ -35,8 +35,15 @@ class SalaController extends Controller
     {
         $request->validate([
             'nome' => 'required|string|max:255|unique:salas,nome',
-            'capacidade' => 'required|integer|min:1', // Capacidade deve ser no mínimo 1
-            'campus' => 'required|in:campus ipolon,campus sede', // Deve ser um dos valores do enum
+            'capacidade' => 'required|integer|min:1',
+            'campus' => 'required|in:campus ipolon,campus sede',
+        ], [
+            'nome.required' => 'Preencha o nome da sala para enviar.',
+            'nome.unique' => 'Já existe uma sala com este nome.',
+            'capacidade.required' => 'Preencha a capacidade da sala para enviar.',
+            'capacidade.min' => 'A capacidade deve ser no mínimo 1.',
+            'campus.required' => 'Selecione o campus da sala para enviar.',
+            'campus.in' => 'Selecione um campus válido.',
         ]);
 
         Sala::create($request->all());
@@ -60,9 +67,16 @@ class SalaController extends Controller
     public function update(Request $request, Sala $sala) // Injeção de modelo
     {
         $request->validate([
-            'nome' => 'required|string|max:255|unique:salas,nome,' . $sala->id, // Ignora o nome da própria sala na validação unique
+            'nome' => 'required|string|max:255|unique:salas,nome,' . $sala->id,
             'capacidade' => 'required|integer|min:1',
             'campus' => 'required|in:campus ipolon,campus sede',
+        ], [
+            'nome.required' => 'Preencha o nome da sala para enviar.',
+            'nome.unique' => 'Já existe uma sala com este nome.',
+            'capacidade.required' => 'Preencha a capacidade da sala para enviar.',
+            'capacidade.min' => 'A capacidade deve ser no mínimo 1.',
+            'campus.required' => 'Selecione o campus da sala para enviar.',
+            'campus.in' => 'Selecione um campus válido.',
         ]);
 
         $sala->update($request->all());

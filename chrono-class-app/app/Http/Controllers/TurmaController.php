@@ -27,6 +27,13 @@ class TurmaController extends Controller
             'periodo'          => 'required|string|max:255',
             'ano_entrada'      => 'required|integer|min:2020',
             'bimestre_entrada' => 'required|in:B1,B2,B3,B4',
+        ], [
+            'nome.required' => 'Preencha o nome da turma para enviar.',
+            'periodo.required' => 'Preencha o período da turma para enviar.',
+            'ano_entrada.required' => 'Preencha o ano de entrada da turma para enviar.',
+            'ano_entrada.min' => 'O ano de entrada deve ser no mínimo 2020.',
+            'bimestre_entrada.required' => 'Selecione o bimestre de entrada da turma para enviar.',
+            'bimestre_entrada.in' => 'Selecione um bimestre válido.',
         ]);
 
         Turma::create($request->all());
@@ -48,6 +55,13 @@ class TurmaController extends Controller
             'periodo'          => 'required|string|max:255',
             'ano_entrada'      => 'required|integer|min:2020',
             'bimestre_entrada' => 'required|in:B1,B2,B3,B4',
+        ], [
+            'nome.required' => 'Preencha o nome da turma para enviar.',
+            'periodo.required' => 'Preencha o período da turma para enviar.',
+            'ano_entrada.required' => 'Preencha o ano de entrada da turma para enviar.',
+            'ano_entrada.min' => 'O ano de entrada deve ser no mínimo 2020.',
+            'bimestre_entrada.required' => 'Selecione o bimestre de entrada da turma para enviar.',
+            'bimestre_entrada.in' => 'Selecione um bimestre válido.',
         ]);
 
         $turma->update($request->all());

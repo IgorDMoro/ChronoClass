@@ -17,6 +17,28 @@ const form = useForm({
 });
 
 const submit = () => {
+    form.clearErrors();
+    let hasErrors = false;
+
+    if (!form.nome) {
+        form.setError('nome', 'Preencha o nome da turma para enviar.');
+        hasErrors = true;
+    }
+    if (!form.periodo) {
+        form.setError('periodo', 'Preencha o período da turma para enviar.');
+        hasErrors = true;
+    }
+    if (!form.ano_entrada) {
+        form.setError('ano_entrada', 'Preencha o ano de entrada da turma para enviar.');
+        hasErrors = true;
+    }
+    if (!form.bimestre_entrada) {
+        form.setError('bimestre_entrada', 'Selecione o bimestre de entrada da turma para enviar.');
+        hasErrors = true;
+    }
+
+    if (hasErrors) return;
+
     form.post(route('turmas.update-post', props.turma.id));
 };
 </script>
@@ -43,25 +65,25 @@ const submit = () => {
                                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                                     <div>
                                         <label for="nome" class="text-sm font-medium text-gray-700 dark:text-gray-300">Nome da Turma:</label>
-                                        <input type="text" id="nome" v-model="form.nome" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200" required autofocus />
+                                        <input type="text" id="nome" v-model="form.nome" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200" autofocus />
                                         <InputError class="mt-2" :message="form.errors.nome" />
                                     </div>
 
                                     <div>
                                         <label for="periodo" class="text-sm font-medium text-gray-700 dark:text-gray-300">Período:</label>
-                                        <input type="text" id="periodo" v-model="form.periodo" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200" required />
+                                        <input type="text" id="periodo" v-model="form.periodo" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200" />
                                         <InputError class="mt-2" :message="form.errors.periodo" />
                                     </div>
 
                                     <div>
                                         <label for="ano_entrada" class="text-sm font-medium text-gray-700 dark:text-gray-300">Ano de Entrada:</label>
-                                        <input type="number" id="ano_entrada" v-model="form.ano_entrada" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200" required />
+                                        <input type="number" id="ano_entrada" v-model="form.ano_entrada" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200" />
                                         <InputError class="mt-2" :message="form.errors.ano_entrada" />
                                     </div>
 
                                     <div>
                                         <label for="bimestre_entrada" class="text-sm font-medium text-gray-700 dark:text-gray-300">Bimestre de Entrada:</label>
-                                        <select id="bimestre_entrada" v-model="form.bimestre_entrada" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200" required>
+                                        <select id="bimestre_entrada" v-model="form.bimestre_entrada" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200">
                                             <option value="" disabled>Selecione...</option>
                                             <option v-for="b in bimestres" :key="b" :value="b">{{ b }}</option>
                                         </select>

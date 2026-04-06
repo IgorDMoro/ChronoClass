@@ -63,6 +63,12 @@ class GradeController extends Controller
             'bimestre'  => 'required|integer|in:1,2,3,4',
             'ano'       => 'required|integer|min:2020|max:2100',
             'horarios'  => 'present|array',
+        ], [
+            'turma_id.required' => 'Selecione a turma da grade para enviar.',
+            'curso.required' => 'Selecione pelo menos um curso da grade para enviar.',
+            'curso.min' => 'Selecione pelo menos um curso da grade para enviar.',
+            'bimestre.required' => 'Selecione o bimestre da grade para enviar.',
+            'ano.required' => 'Preencha o ano da grade para enviar.',
         ]);
 
         try {
@@ -143,6 +149,12 @@ class GradeController extends Controller
             'bimestre'  => 'required|integer|in:1,2,3,4',
             'ano'       => 'required|integer|min:2020|max:2100',
             'horarios'  => 'present|array',
+        ], [
+            'turma_id.required' => 'Selecione a turma da grade para enviar.',
+            'curso.required' => 'Selecione pelo menos um curso da grade para enviar.',
+            'curso.min' => 'Selecione pelo menos um curso da grade para enviar.',
+            'bimestre.required' => 'Selecione o bimestre da grade para enviar.',
+            'ano.required' => 'Preencha o ano da grade para enviar.',
         ]);
 
         try {
@@ -189,6 +201,12 @@ class GradeController extends Controller
             'bimestre'  => 'required|integer|in:1,2,3,4',
             'ano'       => 'required|integer|min:2020|max:2100',
             'horarios'  => 'present|array',
+        ], [
+            'turma_id.required' => 'Selecione a turma da grade para enviar.',
+            'curso.required' => 'Selecione pelo menos um curso da grade para enviar.',
+            'curso.min' => 'Selecione pelo menos um curso da grade para enviar.',
+            'bimestre.required' => 'Selecione o bimestre da grade para enviar.',
+            'ano.required' => 'Preencha o ano da grade para enviar.',
         ]);
 
         try {

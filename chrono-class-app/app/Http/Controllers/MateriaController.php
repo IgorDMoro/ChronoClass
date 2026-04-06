@@ -41,6 +41,14 @@ class MateriaController extends Controller
             'modalidade' => ['required', 'string', Rule::in(['Presencial', 'UCD'])],
             'comp_tipo' => ['required', 'string', Rule::in(['Core', 'Flex'])],
             'ensw_tipo' => ['required', 'string', Rule::in(['Core', 'Flex'])],
+        ], [
+            'codigo.required' => 'Preencha o código da UC para enviar.',
+            'codigo.unique' => 'Já existe uma UC com este código.',
+            'nome.required' => 'Preencha o nome da UC para enviar.',
+            'carga_horaria.required' => 'Preencha a carga horária da UC para enviar.',
+            'modalidade.required' => 'Selecione a modalidade da UC para enviar.',
+            'comp_tipo.required' => 'Selecione o tipo Comp. da UC para enviar.',
+            'ensw_tipo.required' => 'Selecione o tipo Ensw. da UC para enviar.',
         ]);
 
         Materia::create($validated);
@@ -81,6 +89,14 @@ class MateriaController extends Controller
             'modalidade' => ['required', 'string', Rule::in(['Presencial', 'UCD'])],
             'comp_tipo' => ['required', 'string', Rule::in(['Core', 'Flex'])],
             'ensw_tipo' => ['required', 'string', Rule::in(['Core', 'Flex'])],
+        ], [
+            'codigo.required' => 'Preencha o código da UC para enviar.',
+            'codigo.unique' => 'Já existe uma UC com este código.',
+            'nome.required' => 'Preencha o nome da UC para enviar.',
+            'carga_horaria.required' => 'Preencha a carga horária da UC para enviar.',
+            'modalidade.required' => 'Selecione a modalidade da UC para enviar.',
+            'comp_tipo.required' => 'Selecione o tipo Comp. da UC para enviar.',
+            'ensw_tipo.required' => 'Selecione o tipo Ensw. da UC para enviar.',
         ]);
 
         $materia->update($validated);

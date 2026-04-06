@@ -16,6 +16,36 @@ const form = useForm({
 });
 
 const submitForm = () => {
+    form.clearErrors();
+    let hasErrors = false;
+
+    if (!form.codigo) {
+        form.setError('codigo', 'Preencha o código da UC para enviar.');
+        hasErrors = true;
+    }
+    if (!form.nome) {
+        form.setError('nome', 'Preencha o nome da UC para enviar.');
+        hasErrors = true;
+    }
+    if (!form.carga_horaria && form.carga_horaria !== 0) {
+        form.setError('carga_horaria', 'Preencha a carga horária da UC para enviar.');
+        hasErrors = true;
+    }
+    if (!form.modalidade) {
+        form.setError('modalidade', 'Selecione a modalidade da UC para enviar.');
+        hasErrors = true;
+    }
+    if (!form.comp_tipo) {
+        form.setError('comp_tipo', 'Selecione o tipo Comp. da UC para enviar.');
+        hasErrors = true;
+    }
+    if (!form.ensw_tipo) {
+        form.setError('ensw_tipo', 'Selecione o tipo Ensw. da UC para enviar.');
+        hasErrors = true;
+    }
+
+    if (hasErrors) return;
+
     form.post(route('materias.store'), {
         onSuccess: () => form.reset(),
     });
@@ -44,26 +74,26 @@ const submitForm = () => {
                                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div>
                                         <label for="codigo" class="text-sm font-medium text-gray-700 dark:text-gray-300">Código:</label>
-                                        <input type="text" id="codigo" v-model="form.codigo" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200" required />
+                                        <input type="text" id="codigo" v-model="form.codigo" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200" />
                                         <InputError class="mt-2" :message="form.errors.codigo" />
                                     </div>
 
                                     <div>
                                         <label for="nome" class="text-sm font-medium text-gray-700 dark:text-gray-300">Nome:</label>
-                                        <input type="text" id="nome" v-model="form.nome" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200" required />
+                                        <input type="text" id="nome" v-model="form.nome" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200" />
                                         <InputError class="mt-2" :message="form.errors.nome" />
                                     </div>
 
                                     <div>
                                         <label for="carga_horaria" class="text-sm font-medium text-gray-700 dark:text-gray-300">Carga Horária:</label>
-                                        <input type="number" id="carga_horaria" v-model="form.carga_horaria" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200" required />
+                                        <input type="number" id="carga_horaria" v-model="form.carga_horaria" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200" />
                                         <InputError class="mt-2" :message="form.errors.carga_horaria" />
                                     </div>
                                 </div>
                                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
                                      <div>
                                         <label for="modalidade" class="text-sm font-medium text-gray-700 dark:text-gray-300">Modalidade:</label>
-                                        <select id="modalidade" v-model="form.modalidade" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200" required>
+                                        <select id="modalidade" v-model="form.modalidade" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200">
                                             <option value="Presencial">Presencial</option>
                                             <option value="UCD">UCD</option>
                                         </select>
@@ -71,7 +101,7 @@ const submitForm = () => {
                                     </div>
                                     <div>
                                         <label for="comp_tipo" class="text-sm font-medium text-gray-700 dark:text-gray-300">Comp. Tipo (CC):</label>
-                                        <select id="comp_tipo" v-model="form.comp_tipo" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200" required>
+                                        <select id="comp_tipo" v-model="form.comp_tipo" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200">
                                             <option value="Core">Core</option>
                                             <option value="Flex">Flex</option>
                                         </select>
@@ -79,7 +109,7 @@ const submitForm = () => {
                                     </div>
                                     <div>
                                         <label for="ensw_tipo" class="text-sm font-medium text-gray-700 dark:text-gray-300">Ensw. Tipo (ES):</label>
-                                        <select id="ensw_tipo" v-model="form.ensw_tipo" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200" required>
+                                        <select id="ensw_tipo" v-model="form.ensw_tipo" class="mt-1 w-full rounded-md bg-gray-50 dark:bg-neutral-800 border-gray-300 dark:border-gray-300/40 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50 text-gray-900 dark:text-gray-200">
                                             <option value="Core">Core</option>
                                             <option value="Flex">Flex</option>
                                         </select>
