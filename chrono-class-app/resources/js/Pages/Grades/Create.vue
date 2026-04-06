@@ -53,6 +53,7 @@ const editingSlots = ref(new Set());
 const materiaNames = ref({});
 const professorNames = ref({});
 const salaInfo = ref({});
+const slotWarnings = ref({});
 
 // Busca inline de matéria por slot
 const buscaMateria = ref({}); // { [slotId]: string }
@@ -111,22 +112,7 @@ const selectedTurmaLabel = computed(() => {
 });
 
 const getProfessoresParaMateria = async (materiaId, slotId) => {
-    if (!materiaId) {
-        filteredProfessores.value[slotId] = [];
-        return;
-    }
-    const key = `slot-${slotId}`;
-    loadingProfessores.value[key] = true;
-    try {
-        const response = await fetch(`/grades/api/professores-por-materia/${materiaId}`);
-        const data = await response.json();
-        filteredProfessores.value[slotId] = data;
-    } catch (error) {
-        console.error('Erro ao buscar professores:', error);
-        filteredProfessores.value[slotId] = [];
-    } finally {
-        loadingProfessores.value[key] = false;
-    }
+    // Todos os professores vêm de props — não precisa de API
 };
 
 // --- Validação de Disponibilidade do Professor ---
@@ -142,14 +128,25 @@ const professorDisponivelNoSlot = (professorId, dia, horario) => {
     return (prof.disponibilidade[diaKey] ?? []).includes(horario);
 };
 
-const getProfessoresDisponiveisNoSlot = (slotId, dia, horario) => {
-    const todos = filteredProfessores.value[slotId] || [];
-    return todos.filter(p => professorDisponivelNoSlot(p.id, dia, horario));
+const professorLecionaMateria = (professorId, materiaId) => {
+    const prof = props.professores.find(p => p.id == professorId);
+    return prof?.materias?.some(m => m.id == materiaId) ?? false;
 };
 
-const getProfessoresIndisponiveisNoSlot = (slotId, dia, horario) => {
-    const todos = filteredProfessores.value[slotId] || [];
-    return todos.filter(p => !professorDisponivelNoSlot(p.id, dia, horario));
+const getProfessoresDisponiveisNoSlot = (materiaId, dia, horario) => {
+    if (!materiaId) return [];
+    return props.professores.filter(p =>
+        professorLecionaMateria(p.id, materiaId) &&
+        professorDisponivelNoSlot(p.id, dia, horario)
+    );
+};
+
+const getProfessoresIndisponiveisNoSlot = (materiaId, dia, horario) => {
+    if (!materiaId) return [];
+    return props.professores.filter(p =>
+        !professorLecionaMateria(p.id, materiaId) ||
+        !professorDisponivelNoSlot(p.id, dia, horario)
+    );
 };
 
 const checkForConflict = (aula, celula, slotId) => {
@@ -158,16 +155,20 @@ const checkForConflict = (aula, celula, slotId) => {
         delete conflictWarnings.value[key];
         return;
     }
-    const conflict = props.existingHorarios.find(h =>
+    const conflicts = props.existingHorarios.filter(h =>
         h.dia_semana === celula.dia_semana &&
         h.horario_bloco === celula.horario_bloco &&
-        h.professor_id === aula.professor_id &&
-        // Só é conflito real se for no mesmo bimestre E mesmo ano
+        h.professor_id == aula.professor_id &&
         h.grade?.bimestre == form.bimestre &&
         h.grade?.ano == form.ano
     );
-    if (conflict) {
-        conflictWarnings.value[key] = `Conflito: Prof. já alocado na grade "${conflict.grade.nome}" (${conflict.grade.bimestre}º Bim/${conflict.grade.ano}).`;
+    if (conflicts.length > 0) {
+        const sharedClass = conflicts.find(c => c.materia_id == aula.materia_id);
+        if (sharedClass) {
+            conflictWarnings.value[key] = `Possível turma compartilhada com "${sharedClass.grade.nome}" — confirme com mesmo professor e sala.`;
+        } else {
+            conflictWarnings.value[key] = `Conflito: Prof. já alocado na grade "${conflicts[0].grade.nome}" (${conflicts[0].grade.bimestre}º Bim/${conflicts[0].grade.ano}).`;
+        }
     } else {
         delete conflictWarnings.value[key];
     }
@@ -191,10 +192,66 @@ const setSlotType = (slot, type) => slot.type = type;
 
 const confirmSlot = (slot, dia, horario) => {
     if (slot.aula.materia_id && slot.aula.professor_id && slot.aula.sala) {
+        const warnings = [];
+
+        // 1. Disponibilidade do professor (aviso, não bloqueia)
         if (dia && horario && !professorDisponivelNoSlot(slot.aula.professor_id, dia, horario)) {
-            alert(`Este professor não está disponível em ${dia} no horário ${horario}. Por favor, selecione outro professor.`);
-            return;
+            const profNome = props.professores.find(p => p.id == slot.aula.professor_id)?.nome || 'Professor';
+            warnings.push(`${profNome} não possui disponibilidade em ${dia} ${horario}.`);
         }
+
+        // Horários de outras grades no mesmo dia/horário/bimestre/ano
+        const horariosNoSlot = props.existingHorarios.filter(h =>
+            h.dia_semana === dia &&
+            h.horario_bloco === horario &&
+            h.grade?.bimestre == form.bimestre &&
+            h.grade?.ano == form.ano
+        );
+
+        // 2. Conflito de sala (exceto aula compartilhada: mesma UC + mesmo professor)
+        const salaConflitos = horariosNoSlot.filter(h =>
+            h.sala === slot.aula.sala &&
+            !(h.materia_id == slot.aula.materia_id && h.professor_id == slot.aula.professor_id)
+        );
+        if (salaConflitos.length > 0) {
+            const nomes = [...new Set(salaConflitos.map(c => c.grade?.nome))].join(', ');
+            warnings.push(`Sala "${slot.aula.sala}" já em uso na(s) grade(s): ${nomes}.`);
+        }
+
+        // 3. Conflito de professor (exceto aula compartilhada: mesma UC + mesma sala)
+        const profConflitos = horariosNoSlot.filter(h =>
+            h.professor_id == slot.aula.professor_id &&
+            !(h.materia_id == slot.aula.materia_id && h.sala === slot.aula.sala)
+        );
+        if (profConflitos.length > 0) {
+            const profNome = props.professores.find(p => p.id == slot.aula.professor_id)?.nome || 'Professor';
+            const nomes = [...new Set(profConflitos.map(c => c.grade?.nome))].join(', ');
+            warnings.push(`${profNome} já alocado na(s) grade(s): ${nomes}.`);
+        }
+
+        // 4. UC compartilhada: mesma matéria neste slot em outra grade
+        const mesmaUcOutraGrade = horariosNoSlot.filter(h =>
+            h.materia_id == slot.aula.materia_id
+        );
+        if (mesmaUcOutraGrade.length > 0) {
+            mesmaUcOutraGrade.forEach(h => {
+                const outroProf = props.professores.find(p => p.id == h.professor_id)?.nome || 'Professor';
+                const outraSala = h.sala || '(sem sala)';
+                const gradeName = h.grade?.nome || 'outra grade';
+                const profDiferente = h.professor_id != slot.aula.professor_id;
+                const salaDiferente = h.sala !== slot.aula.sala;
+                if (profDiferente && salaDiferente) {
+                    warnings.push(`Turma compartilhada com "${gradeName}": professor deveria ser "${outroProf}" e sala "${outraSala}".`);
+                } else if (profDiferente) {
+                    warnings.push(`Turma compartilhada com "${gradeName}": professor deveria ser "${outroProf}".`);
+                } else if (salaDiferente) {
+                    warnings.push(`Turma compartilhada com "${gradeName}": sala deveria ser "${outraSala}".`);
+                }
+            });
+        }
+
+        slotWarnings.value[slot.id] = warnings;
+
         slot.confirmed = true;
         editingSlots.value.delete(slot.id);
         materiaNames.value[slot.id] = props.materias_presenciais.find(m => m.id == slot.aula.materia_id)?.nome || '';
@@ -206,6 +263,7 @@ const confirmSlot = (slot, dia, horario) => {
 const editSlot = (slot) => {
     slot.confirmed = false;
     editingSlots.value.add(slot.id);
+    delete slotWarnings.value[slot.id];
 };
 
 const addFlexAula = (slot) => slot.flex_aulas.push({ id: Date.now(), professor_id: '', materia_id: '', sala: '', classroom_code: '', confirmed: false, materiaName: '', professorName: '' });
@@ -490,6 +548,12 @@ const submit = () => {
                                                                     </div>
                                                                 </div>
                                                             </div>
+                                                            <div v-if="slotWarnings[slot.id]?.length" class="space-y-1">
+                                                                <div v-for="(warn, wIdx) in slotWarnings[slot.id]" :key="wIdx" class="text-[10px] text-amber-700 dark:text-amber-400 p-1.5 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded flex items-start gap-1">
+                                                                    <span class="shrink-0">⚠️</span>
+                                                                    <span>{{ warn }}</span>
+                                                                </div>
+                                                            </div>
                                                         </div>
 
                                                         <!-- MODO EDIÇÃO -->
@@ -527,14 +591,13 @@ const submit = () => {
                                                                         </li>
                                                                         <li v-if="getMateriasFiltradas(slot.id, materiasCore).length === 0" class="px-2 py-2 text-xs text-gray-400 text-center italic">Nenhuma encontrada</li>
                                                                     </ul>
-                                                                </div>                                                                <div v-if="loadingProfessores[`slot-${slot.id}`]" class="text-[10px] text-gray-500 dark:text-gray-400 italic">Carregando professores...</div>
-                                                                <select v-model="slot.aula.professor_id" @change="checkForConflict(slot.aula, gradeVisual[dia][hIndex], slot.id)" :disabled="!slot.aula.materia_id || loadingProfessores[`slot-${slot.id}`]" class="w-full rounded-md border-gray-300 dark:border-gray-300/40 dark:bg-neutral-700 dark:text-gray-200 text-xs px-2 py-1 disabled:bg-gray-100 dark:disabled:bg-neutral-800">
+                                                                </div>                                                                <select v-model="slot.aula.professor_id" @change="checkForConflict(slot.aula, gradeVisual[dia][hIndex], slot.id)" :disabled="!slot.aula.materia_id" class="w-full rounded-md border-gray-300 dark:border-gray-300/40 dark:bg-neutral-700 dark:text-gray-200 text-xs px-2 py-1 disabled:bg-gray-100 dark:disabled:bg-neutral-800">
                                                                     <option value="" disabled>Professor</option>
-                                                                    <optgroup v-if="getProfessoresDisponiveisNoSlot(slot.id, dia, gradeVisual[dia][hIndex].horario_bloco).length" label="✅ Disponíveis">
-                                                                        <option v-for="prof in getProfessoresDisponiveisNoSlot(slot.id, dia, gradeVisual[dia][hIndex].horario_bloco)" :key="prof.id" :value="prof.id">{{ prof.nome }}</option>
+                                                                    <optgroup v-if="getProfessoresDisponiveisNoSlot(slot.aula.materia_id, dia, gradeVisual[dia][hIndex].horario_bloco).length" label="✅ Disponíveis">
+                                                                        <option v-for="prof in getProfessoresDisponiveisNoSlot(slot.aula.materia_id, dia, gradeVisual[dia][hIndex].horario_bloco)" :key="prof.id" :value="prof.id">{{ prof.nome }}</option>
                                                                     </optgroup>
-                                                                    <optgroup v-if="getProfessoresIndisponiveisNoSlot(slot.id, dia, gradeVisual[dia][hIndex].horario_bloco).length" label="⚠️ Indisponíveis">
-                                                                        <option v-for="prof in getProfessoresIndisponiveisNoSlot(slot.id, dia, gradeVisual[dia][hIndex].horario_bloco)" :key="prof.id" :value="prof.id">{{ prof.nome }}</option>
+                                                                    <optgroup v-if="getProfessoresIndisponiveisNoSlot(slot.aula.materia_id, dia, gradeVisual[dia][hIndex].horario_bloco).length" label="⚠️ Indisponíveis">
+                                                                        <option v-for="prof in getProfessoresIndisponiveisNoSlot(slot.aula.materia_id, dia, gradeVisual[dia][hIndex].horario_bloco)" :key="prof.id" :value="prof.id">{{ prof.nome }}</option>
                                                                     </optgroup>
                                                                 </select>
                                                                 <div v-if="slot.aula.professor_id && !professorDisponivelNoSlot(slot.aula.professor_id, dia, gradeVisual[dia][hIndex].horario_bloco)" class="text-[10px] text-red-600 dark:text-red-400 p-1 bg-red-100 dark:bg-red-500/10 rounded">
@@ -594,10 +657,9 @@ const submit = () => {
                                                                                     <li v-if="getMateriasFiltradas(`flex-${slot.id}-${fIndex}`, materiasFlex).length === 0" class="px-2 py-2 text-xs text-gray-400 text-center italic">Nenhuma encontrada</li>
                                                                                 </ul>
                                                                             </div>
-                                                                            <div v-if="loadingProfessores[`slot-flex-${slot.id}-${fIndex}`]" class="text-[10px] text-gray-500 dark:text-gray-400 italic">Carregando professores...</div>
-                                                                            <select v-model="flexAula.professor_id" :disabled="!flexAula.materia_id || loadingProfessores[`slot-flex-${slot.id}-${fIndex}`]" class="w-full rounded-md border-gray-300 dark:border-gray-300/40 dark:bg-neutral-700 dark:text-gray-200 text-xs px-2 py-1 disabled:bg-gray-100 dark:disabled:bg-neutral-800">
+                                                                            <select v-model="flexAula.professor_id" :disabled="!flexAula.materia_id" class="w-full rounded-md border-gray-300 dark:border-gray-300/40 dark:bg-neutral-700 dark:text-gray-200 text-xs px-2 py-1 disabled:bg-gray-100 dark:disabled:bg-neutral-800">
                                                                                 <option value="" disabled>Professor</option>
-                                                                                <option v-for="prof in (filteredProfessores[`flex-${slot.id}-${fIndex}`] || [])" :key="prof.id" :value="prof.id">{{ prof.nome }}</option>
+                                                                                <option v-for="prof in props.professores" :key="prof.id" :value="prof.id">{{ prof.nome }}</option>
                                                                             </select>
                                                                             <select v-model="flexAula.sala" class="w-full rounded-md border-gray-300 dark:border-gray-300/40 dark:bg-neutral-700 dark:text-gray-200 text-xs px-2 py-1">
                                                                                 <option value="" disabled>Sala</option>

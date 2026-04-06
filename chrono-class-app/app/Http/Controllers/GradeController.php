@@ -29,17 +29,16 @@ class GradeController extends Controller
     public function create()
     {
         return Inertia::render('Grades/Create', [
-            'materias_presenciais' => Materia::where('modalidade', 'Presencial')->whereHas('professores')->get(),
-            'materias_ucd'         => Materia::where('modalidade', 'UCD')->whereHas('professores')->get(),
+            'materias_presenciais' => Materia::where('modalidade', 'Presencial')->get(),
+            'materias_ucd'         => Materia::where('modalidade', 'UCD')->get(),
             // Matérias flex: comp_tipo e ensw_tipo ambos 'Flex'
             'materias_flex'        => Materia::where('modalidade', 'Presencial')
                                         ->where('comp_tipo', 'Flex')
                                         ->where('ensw_tipo', 'Flex')
-                                        ->whereHas('professores')
                                         ->get(),
             'professores'          => Professor::with(['materias', 'horariosDisponiveisPivot'])->get(),
             'existingHorarios'     => Horario::with('grade:id,nome,bimestre,ano')
-                                        ->select('dia_semana', 'horario_bloco', 'professor_id', 'grade_id')
+                                        ->select('dia_semana', 'horario_bloco', 'professor_id', 'grade_id', 'sala', 'materia_id')
                                         ->get(),
             'salas'                => Sala::all(),
             'turmas'               => Turma::all(),
@@ -118,19 +117,18 @@ class GradeController extends Controller
         return Inertia::render('Grades/Edit', [
             'grade'                => $grade->load('turma'),
             'existingHorarios'     => $grade->horarios()->get(),
-            'materias_presenciais' => Materia::where('modalidade', 'Presencial')->whereHas('professores')->get(),
-            'materias_ucd'         => Materia::where('modalidade', 'UCD')->whereHas('professores')->get(),
+            'materias_presenciais' => Materia::where('modalidade', 'Presencial')->get(),
+            'materias_ucd'         => Materia::where('modalidade', 'UCD')->get(),
             'materias_flex'        => Materia::where('modalidade', 'Presencial')
                                         ->where('comp_tipo', 'Flex')
                                         ->where('ensw_tipo', 'Flex')
-                                        ->whereHas('professores')
                                         ->get(),
             'professores'          => Professor::with(['materias'])->get(),
             'salas'                => Sala::all(),
             'turmas'               => Turma::all(),
             'anoAtual'             => now()->year,
             'existingHorariosOutrasGrades' => Horario::with('grade:id,nome,bimestre,ano')
-                ->select('dia_semana', 'horario_bloco', 'professor_id', 'grade_id')
+                ->select('dia_semana', 'horario_bloco', 'professor_id', 'grade_id', 'sala', 'materia_id')
                 ->whereHas('grade', fn($q) => $q
                     ->where('bimestre', $grade->bimestre)
                     ->where('ano', $grade->ano)
@@ -213,29 +211,6 @@ class GradeController extends Controller
             $horarios = $request->input('horarios', []);
             DB::transaction(function () use ($validated, $grade, $horarios) {
                 $turma = Turma::findOrFail($validated['turma_id']);
-
-                $outrasGradesIds = Grade::where('bimestre', $validated['bimestre'])
-                    ->where('ano', $validated['ano'])
-                    ->where('id', '!=', $grade->id)
-                    ->pluck('id');
-
-                foreach ($horarios as $horarioData) {
-                    if (empty($horarioData['professor_id'])) continue;
-
-                    $conflito = Horario::whereIn('grade_id', $outrasGradesIds)
-                        ->where('dia_semana', $horarioData['dia_semana'])
-                        ->where('horario_bloco', $horarioData['horario_bloco'])
-                        ->where('professor_id', $horarioData['professor_id'])
-                        ->with('grade:id,nome')
-                        ->first();
-
-                    if ($conflito) {
-                        $nomeProf = Professor::find($horarioData['professor_id'])?->nome ?? 'Professor';
-                        throw new \Exception(
-                            "Conflito: {$nomeProf} já está alocado em {$horarioData['dia_semana']} {$horarioData['horario_bloco']} na grade \"{$conflito->grade->nome}\" ({$validated['bimestre']}º Bim/{$validated['ano']})."
-                        );
-                    }
-                }
 
                 $grade->update([
                     'nome'     => $turma->nome . ' — ' . $turma->periodo,
