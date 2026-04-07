@@ -85,8 +85,14 @@ const gradeVisual = ref(diasDaSemana.reduce((acc, dia) => {
     return acc;
 }, {}));
 
-const gradeSabado = ref({ estagio: false });
+const gradeSabado = ref({ tipo: '', materia_id: '' });
 const gradeUcd = ref([]);
+
+const materiasSabadoFiltradas = computed(() => {
+    if (gradeSabado.value.tipo === 'estagio') return props.materias_presenciais.filter(m => m.nome.toLowerCase().includes('estágio'));
+    if (gradeSabado.value.tipo === 'tcc') return props.materias_presenciais.filter(m => m.nome.toLowerCase().includes('tcc'));
+    return [];
+});
 
 // --- Carrega dados existentes ---
 const loadExistingGrade = () => {
@@ -133,6 +139,17 @@ const loadExistingGrade = () => {
             }
         });
     });
+
+    // Carrega atividades ao Sábado
+    const sabadoHorarios = props.existingHorarios.filter(h => h.dia_semana === 'SABADO');
+    if (sabadoHorarios.length > 0) {
+        showSabado.value = true;
+        const h = sabadoHorarios[0];
+        const materia = props.materias_presenciais?.find(m => m.id === h.materia_id);
+        if (materia?.nome?.toLowerCase().includes('estágio')) gradeSabado.value.tipo = 'estagio';
+        else if (materia?.nome?.toLowerCase().includes('tcc')) gradeSabado.value.tipo = 'tcc';
+        gradeSabado.value.materia_id = h.materia_id;
+    }
 };
 
 // --- Validação de Disponibilidade do Professor ---
@@ -297,16 +314,23 @@ const editSlot = (slot) => {
 };
 
 const addFlexAula = (slot) => slot.flex_aulas.push({ id: Date.now(), professor_id: '', materia_id: '', sala: '', classroom_code: '', confirmed: false, materiaName: '', professorName: '' });
-const removeFlexAula = (slot, flexIndex) => slot.flex_aulas.splice(flexIndex, 1);
+const removeFlexAula = (slot, flexIndex) => {
+    slot.flex_aulas.splice(flexIndex, 1);
+    if (!slot.flex_aulas.some(fa => fa.confirmed)) slot.confirmed = false;
+};
 const confirmFlexAula = (slot, fIndex) => {
     const fa = slot.flex_aulas[fIndex];
     if (fa.materia_id && fa.professor_id && fa.sala) {
         fa.confirmed = true;
         fa.materiaName = props.materias_presenciais.find(m => m.id == fa.materia_id)?.nome || '';
         fa.professorName = props.professores.find(p => p.id == fa.professor_id)?.nome || '';
+        slot.confirmed = true;
     }
 };
-const editFlexAula = (fa) => { fa.confirmed = false; };
+const editFlexAula = (slot, fa) => {
+    fa.confirmed = false;
+    if (!slot.flex_aulas.some(f => f.confirmed)) slot.confirmed = false;
+};
 
 const addUcd = () => gradeUcd.value.push({ dia_semana: 'ATIVIDADE_DIGITAL', horario_bloco: 'N/A', materia_id: '', professor_id: '', sala: '', classroom_code: '' });
 const removeUcd = (index) => gradeUcd.value.splice(index, 1);
@@ -347,7 +371,7 @@ const submit = () => {
                 };
                 if (slot.type === 'Flex') {
                     slot.flex_aulas.forEach(flexAula => {
-                        if (flexAula.materia_id && flexAula.professor_id) horariosPreenchidos.push({ ...aulaBase, ...flexAula });
+                        if (flexAula.materia_id && flexAula.professor_id) horariosPreenchidos.push({ ...aulaBase, ...flexAula, tipo_slot: 'Flex' });
                     });
                 } else if (slot.type && slot.aula.materia_id && slot.aula.professor_id) {
                     horariosPreenchidos.push({ ...aulaBase, ...slot.aula, tipo_slot: slot.type });
@@ -356,12 +380,9 @@ const submit = () => {
         });
     });
 
-    if (showSabado.value && gradeSabado.value.estagio) {
-        const materiaEstagio = props.materias_presenciais.find(m => m.nome.toLowerCase().includes('estágio'));
-        if (materiaEstagio) {
-            const primeiroProfessorId = props.professores[0]?.id || null;
-            horariosPreenchidos.push({ dia_semana: 'SABADO', horario_bloco: horarioSabado, materia_id: materiaEstagio.id, professor_id: primeiroProfessorId, sala: null, classroom_code: 'N/A' });
-        }
+    if (showSabado.value && gradeSabado.value.materia_id) {
+        const primeiroProfessorId = props.professores[0]?.id || null;
+        horariosPreenchidos.push({ dia_semana: 'SABADO', horario_bloco: horarioSabado, materia_id: gradeSabado.value.materia_id, professor_id: primeiroProfessorId, sala: null, classroom_code: null, tipo_slot: 'Atividade Sábado' });
     }
 
     if (showUcd.value) {
@@ -660,7 +681,7 @@ onMounted(() => {
                                                                             <p class="text-[10px] text-gray-500 dark:text-gray-400 truncate">{{ flexAula.sala }}</p>
                                                                         </div>
                                                                         <div class="flex gap-1 shrink-0">
-                                                                            <button @click="editFlexAula(flexAula)" type="button" class="p-1 rounded hover:bg-gray-100 dark:hover:bg-neutral-700">
+                                                                            <button @click="editFlexAula(slot, flexAula)" type="button" class="p-1 rounded hover:bg-gray-100 dark:hover:bg-neutral-700">
                                                                                 <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                                                             </button>
                                                                             <button @click="removeFlexAula(slot, fIndex)" type="button" class="p-1 rounded hover:bg-red-100 dark:hover:bg-red-500/20 text-red-500">&times;</button>
@@ -726,12 +747,27 @@ onMounted(() => {
                             </div>
 
                             <div v-if="showSabado" class="mt-4 p-4 border border-blue-200 dark:border-blue-500/30 rounded-lg bg-blue-50 dark:bg-blue-500/10">
-                                <InputLabel class="text-gray-700 dark:text-gray-300">Atividade de Sábado ({{ horarioSabado.replace('-', ' - ') }})</InputLabel>
-                                <label class="relative inline-flex items-center cursor-pointer mt-2">
-                                    <input type="checkbox" v-model="gradeSabado.estagio" class="sr-only peer">
-                                    <div class="w-11 h-6 bg-gray-200 dark:bg-neutral-700 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border dark:after:border-neutral-700 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 dark:peer-checked:bg-blue-700"></div>
-                                    <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">Estágio</span>
-                                </label>
+                                <InputLabel class="text-gray-700 dark:text-gray-300 font-semibold">Atividades ao Sábado ({{ horarioSabado.replace('-', ' - ') }})</InputLabel>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-3">Selecione o tipo de atividade e a fase correspondente.</p>
+                                <div class="flex gap-4 flex-wrap mb-3">
+                                    <label class="flex items-center gap-2 cursor-pointer px-4 py-2 rounded-md border transition-colors"
+                                        :class="gradeSabado.tipo === 'estagio' ? 'border-blue-500 bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300' : 'border-gray-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 text-gray-700 dark:text-gray-300 hover:border-blue-400'">
+                                        <input type="radio" v-model="gradeSabado.tipo" value="estagio" @change="gradeSabado.materia_id = ''" class="text-blue-600 focus:ring-blue-500" />
+                                        <span class="text-sm font-medium">Estágio</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer px-4 py-2 rounded-md border transition-colors"
+                                        :class="gradeSabado.tipo === 'tcc' ? 'border-blue-500 bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300' : 'border-gray-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 text-gray-700 dark:text-gray-300 hover:border-blue-400'">
+                                        <input type="radio" v-model="gradeSabado.tipo" value="tcc" @change="gradeSabado.materia_id = ''" class="text-blue-600 focus:ring-blue-500" />
+                                        <span class="text-sm font-medium">TCC</span>
+                                    </label>
+                                </div>
+                                <div v-if="gradeSabado.tipo" class="mt-2">
+                                    <InputLabel class="text-gray-700 dark:text-gray-300 text-xs mb-1">Fase</InputLabel>
+                                    <select v-model="gradeSabado.materia_id" class="w-full md:w-1/2 rounded-md border-gray-300 dark:border-gray-300/40 dark:bg-neutral-800 dark:text-gray-200 shadow-sm text-sm focus:ring-blue-500 focus:border-blue-500">
+                                        <option value="" disabled>Selecione a fase</option>
+                                        <option v-for="m in materiasSabadoFiltradas" :key="m.id" :value="m.id">{{ m.nome }}</option>
+                                    </select>
+                                </div>
                             </div>
 
                             <div v-if="showUcd" class="mt-4 p-4 border border-purple-200 dark:border-purple-500/30 rounded-lg bg-purple-50 dark:bg-purple-500/10">

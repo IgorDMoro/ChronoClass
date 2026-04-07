@@ -35,7 +35,6 @@ class HandleInertiaRequests extends Middleware
                     'id' => $request->user()->id,
                     'name' => $request->user()->name,
                     'email' => $request->user()->email,
-                    // Aqui está o segredo: enviamos o 'role' que definimos no User.php
                     'role' => $request->user()->role, 
                     'avatar' => $request->user()->avatar,
                 ] : null,

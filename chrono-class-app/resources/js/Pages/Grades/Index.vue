@@ -1,6 +1,6 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import ConfirmationModal from '@/Components/ConfirmationModal.vue';
+// Removido o import do ConfirmationModal antigo se não for mais usar
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 
@@ -11,17 +11,17 @@ const props = defineProps({
 });
 
 // --- Exclusão ---
-const showConfirmModal = ref(false);
-const gradeToDeleteId = ref(null);
+const showConfirmDeleteModal = ref(false);
+const gradeToDelete = ref(null);
 
-const confirmGradeDeletion = (id) => {
-    gradeToDeleteId.value = id;
-    showConfirmModal.value = true;
+const confirmGradeDeletion = (grade) => {
+    gradeToDelete.value = grade;
+    showConfirmDeleteModal.value = true;
 };
 
-const deleteGrade = () => {
-    if (gradeToDeleteId.value) {
-        router.post(route('grades.destroy', gradeToDeleteId.value), {}, {
+const executeDelete = () => {
+    if (gradeToDelete.value) {
+        router.post(route('grades.destroy', gradeToDelete.value.id), {}, {
             preserveScroll: true,
             onSuccess: () => closeModal(),
         });
@@ -29,8 +29,8 @@ const deleteGrade = () => {
 };
 
 const closeModal = () => {
-    showConfirmModal.value = false;
-    gradeToDeleteId.value = null;
+    showConfirmDeleteModal.value = false;
+    gradeToDelete.value = null;
 };
 
 // --- Fixar ---
@@ -193,7 +193,7 @@ const bimestreLabel = (n) => n ? `${n}º Bimestre` : '—';
                                             Editar
                                         </Link>
 
-                                        <button v-if="!isAluno" @click.prevent="confirmGradeDeletion(grade.id)" class="inline-flex items-center px-3 py-1.5 bg-red-600 text-white rounded-md font-semibold text-xs uppercase hover:bg-red-700 transition">
+                                        <button v-if="!isAluno" @click.prevent="confirmGradeDeletion(grade)" class="inline-flex items-center px-3 py-1.5 bg-red-600 text-white rounded-md font-semibold text-xs uppercase hover:bg-red-700 transition">
                                             Excluir
                                         </button>
                                     </div>
@@ -219,12 +219,17 @@ const bimestreLabel = (n) => n ? `${n}º Bimestre` : '—';
             </div>
         </div>
 
-        <ConfirmationModal
-            :show="showConfirmModal"
-            title="Excluir Grade"
-            message="Tem certeza de que quer excluir esta grade?"
-            @close="closeModal"
-            @confirm="deleteGrade"
-        />
+        <div v-if="showConfirmDeleteModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="bg-white dark:bg-neutral-800 max-w-lg w-full rounded-lg shadow-2xl ring-0 dark:ring-1 dark:ring-white/10 p-6 sm:p-8">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Confirmar Exclusão</h3>
+                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    Tem certeza que deseja excluir a grade <strong class="text-orange-500 dark:text-orange-400">{{ gradeToDelete?.nome }}</strong>? Esta ação não pode ser desfeita.
+                </p>
+                <div class="mt-6 flex justify-end gap-4">
+                    <button @click="closeModal" class="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-gray-200 hover:bg-gray-300 dark:bg-neutral-700 dark:hover:bg-neutral-600 rounded-md transition-colors">Cancelar</button>
+                    <button @click="executeDelete" class="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors">Excluir</button>
+                </div>
+            </div>
+        </div>
     </AuthenticatedLayout>
 </template>

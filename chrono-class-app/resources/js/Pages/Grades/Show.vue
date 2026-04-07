@@ -18,8 +18,26 @@ const formatCursos = (cursos) => {
 const dias = ['SEGUNDA', 'TERÇA', 'QUARTA', 'QUINTA', 'SEXTA'];
 const blocos = ['19:00-20:30', '20:45-22:15'];
 
-const getHorario = (dia, bloco) => {
-    return props.grade.horarios?.find(h => h.dia_semana === dia && h.horario_bloco === bloco);
+const getHorarios = (dia, bloco) => {
+    return props.grade.horarios?.filter(h => h.dia_semana === dia && h.horario_bloco === bloco) || [];
+};
+
+const tipoSlotLabel = (tipo) => {
+    if (!tipo) return null;
+    if (tipo === 'Flex') return 'Flex';
+    if (tipo.includes('Engenharia')) return 'Eng. SW';
+    if (tipo.includes('Ciências')) return 'C. Comp';
+    if (tipo.includes('Ambos')) return 'Ambos';
+    return tipo;
+};
+
+const tipoSlotClass = (tipo) => {
+    if (!tipo) return 'bg-gray-100 dark:bg-gray-500/20 text-gray-700 dark:text-gray-300';
+    if (tipo === 'Flex') return 'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-300';
+    if (tipo.includes('Engenharia')) return 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300';
+    if (tipo.includes('Ciências')) return 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-300';
+    if (tipo.includes('Ambos')) return 'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300';
+    return 'bg-gray-100 dark:bg-gray-500/20 text-gray-700 dark:text-gray-300';
 };
 </script>
 
@@ -101,18 +119,27 @@ const getHorario = (dia, bloco) => {
                                             <td
                                                 v-for="dia in dias"
                                                 :key="dia"
-                                                class="px-2 py-4 text-center border-l border-gray-100 dark:border-zinc-800/30"
+                                                class="px-2 py-4 text-center border-l border-gray-100 dark:border-zinc-800/30 align-top"
                                             >
-                                                <div v-if="getHorario(dia, bloco)" class="space-y-2 p-1">
-                                                    <p class="font-bold text-gray-800 dark:text-zinc-100 leading-tight break-words text-[11px] md:text-xs">
-                                                        {{ getHorario(dia, bloco).materia?.nome }}
-                                                    </p>
-                                                    <p class="text-[10px] text-orange-600 dark:text-orange-400 font-medium">
-                                                        👨‍🏫 {{ getHorario(dia, bloco).professor?.nome }}
-                                                    </p>
-                                                    <p class="text-[10px] text-gray-400 dark:text-zinc-500">
-                                                        📍 {{ getHorario(dia, bloco).sala_relacionamento?.nome || getHorario(dia, bloco).sala }}
-                                                    </p>
+                                                <div v-if="getHorarios(dia, bloco).length" class="space-y-2 p-1">
+                                                    <div
+                                                        v-for="h in getHorarios(dia, bloco)"
+                                                        :key="h.id"
+                                                        class="rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 p-2 shadow-sm"
+                                                    >
+                                                        <p class="font-bold text-gray-800 dark:text-zinc-100 leading-tight break-words text-[11px] md:text-xs">
+                                                            {{ h.materia?.nome }}
+                                                        </p>
+                                                        <span v-if="h.tipo_slot" class="inline-block mt-1 px-1.5 py-0.5 text-[9px] font-bold rounded-full" :class="tipoSlotClass(h.tipo_slot)">
+                                                            {{ tipoSlotLabel(h.tipo_slot) }}
+                                                        </span>
+                                                        <p class="text-[10px] text-orange-600 dark:text-orange-400 font-medium mt-1">
+                                                            👨‍🏫 {{ h.professor?.nome }}
+                                                        </p>
+                                                        <p class="text-[10px] text-gray-400 dark:text-zinc-500">
+                                                            📍 {{ h.sala_relacionamento?.nome || h.sala }}
+                                                        </p>
+                                                    </div>
                                                 </div>
                                                 <div v-else class="text-gray-300 dark:text-zinc-700 italic text-[10px] flex flex-col items-center opacity-60">
                                                     <span>Vago</span>
@@ -121,6 +148,20 @@ const getHorario = (dia, bloco) => {
                                         </tr>
                                     </tbody>
                                 </table>
+                            </div>
+                        </div>
+
+                        <!-- Atividades ao Sábado -->
+                        <div v-if="grade.horarios?.some(h => h.dia_semana === 'SABADO')" class="mt-4 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-lg p-5">
+                            <h4 class="text-sm font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider mb-3">📅 Atividades ao Sábado</h4>
+                            <div class="flex gap-3 flex-wrap">
+                                <span
+                                    v-for="h in grade.horarios.filter(h => h.dia_semana === 'SABADO')"
+                                    :key="h.id"
+                                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-neutral-800 border border-blue-200 dark:border-blue-500/30 shadow-sm"
+                                >
+                                    <span class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ h.materia?.nome }}</span>
+                                </span>
                             </div>
                         </div>
 
